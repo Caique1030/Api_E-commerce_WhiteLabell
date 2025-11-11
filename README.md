@@ -1,3 +1,4 @@
+
 # API de E-commerce Whitelabel
 
 Esta é a API para um projeto de e-commerce whitelabel desenvolvido como parte de um processo seletivo. A API gerencia produtos de diferentes fornecedores e pode ser configurada para diferentes clientes (lojas).
