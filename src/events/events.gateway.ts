@@ -40,59 +40,112 @@ export class EventsGateway
     this.logger.log('Socket.io server initialized');
   }
 
-  handleConnection(client: Socket): void {
+async handleConnection(client: Socket): Promise<void> {
+  try {
+    this.logger.debug(`Handshake headers: ${JSON.stringify(client.handshake.headers)}`);
+    this.logger.debug(`Handshake auth: ${JSON.stringify(client.handshake.auth)}`);
+    this.logger.debug(`Handshake query: ${JSON.stringify(client.handshake.query)}`);
+
+    // 🔥 CORREÇÃO: Extrair token corretamente
+    const token = this.extractToken(client);
+    
+    this.logger.debug(`🔍 Token extraído: ${token ? 'SIM' : 'NÃO'}`);
+    
+    if (!token) {
+      this.logger.warn(`Client rejected: No authentication token provided - ${client.id}`);
+      // Enviar mensagem de erro antes de desconectar
+      client.emit('auth_error', { 
+        message: 'Token de autenticação não fornecido. Use: Authorization: Bearer <token>' 
+      });
+      setTimeout(() => client.disconnect(), 1000);
+      return;
+    }
+
+    // Verificar token JWT
     try {
-      // Extrair token do handshake
-      const token =
-        (client.handshake.auth.token as string) ||
-        (client.handshake.headers.authorization?.split(' ')[1] as string);
+      const payload = this.jwtService.verify(token);
+      
+      // Armazenar informações do cliente conectado
+      this.clients.set(client.id, {
+        socket: client,
+        userId: payload.sub,
+        clientId: payload.clientId,
+      });
 
-      if (!token) {
-        this.logger.warn(
-          `Client rejected: No authentication token provided - ${client.id}`,
-        );
-        client.disconnect();
-        return;
+      // Adicionar cliente a salas específicas para targeting de eventos
+      await client.join(`user:${payload.sub}`);
+
+      if (payload.clientId) {
+        await client.join(`client:${payload.clientId}`);
       }
 
-      // Verificar token JWT
-      try {
-        const payload: JwtPayload = this.jwtService.verify(token);
-
-        // Armazenar informações do cliente conectado
-        this.clients.set(client.id, {
-          socket: client,
-          userId: payload.sub,
-          clientId: payload.clientId,
-        });
-
-        // Adicionar cliente a salas específicas para targeting de eventos
-        void client.join(`user:${payload.sub}`);
-
-        if (payload.clientId) {
-          void client.join(`client:${payload.clientId}`);
-        }
-
-        // Se o usuário for admin, adicionar à sala de admins
-        if (payload.role === 'admin') {
-          void client.join('admins');
-        }
-
-        this.logger.log(
-          `Client connected: ${client.id} - User: ${payload.sub} - Client: ${payload.clientId || 'N/A'}`,
-        );
-      } catch (e) {
-        const error = e as Error;
-        this.logger.error(`Invalid JWT token: ${error.message}`);
-        client.disconnect();
-        return;
+      // Se o usuário for admin, adicionar à sala de admins
+      if (payload.role === 'admin') {
+        await client.join('admins');
       }
-    } catch (e) {
-      const error = e as Error;
-      this.logger.error(`Error handling connection: ${error.message}`);
-      client.disconnect();
+
+      this.logger.log(`Client connected: ${client.id} - User: ${payload.sub} - Client: ${payload.clientId || 'N/A'}`);
+      
+      // Enviar confirmação de conexão bem-sucedida
+      client.emit('connected', {
+        message: 'Conectado e autenticado com sucesso!',
+        userId: payload.sub,
+        clientId: payload.clientId,
+        role: payload.role
+      });
+
+    } catch (error) {
+      this.logger.error(`Invalid JWT token: ${error.message}`);
+      client.emit('auth_error', { 
+        message: `Token inválido: ${error.message}` 
+      });
+      setTimeout(() => client.disconnect(), 1000);
+      return;
+    }
+
+  } catch (error) {
+    this.logger.error(`Error handling connection: ${error.message}`);
+    client.emit('auth_error', { 
+      message: `Erro na conexão: ${error.message}` 
+    });
+    setTimeout(() => client.disconnect(), 1000);
+  }
+}
+
+// 🔥 ADICIONE ESTE MÉTODO PARA EXTRAIR O TOKEN CORRETAMENTE
+private extractToken(client: Socket): string | null {
+  // 1. Tentar do Header Authorization (com 'a' minúsculo)
+  const authHeader = client.handshake.headers['authorization'];
+  if (authHeader) {
+    if (typeof authHeader === 'string') {
+      // Verificar se tem "Bearer " prefix
+      if (authHeader.startsWith('Bearer ')) {
+        this.logger.debug('✅ Token encontrado no Header Authorization (com Bearer)');
+        return authHeader.substring(7);
+      } else {
+        this.logger.debug('✅ Token encontrado no Header Authorization (sem Bearer)');
+        return authHeader;
+      }
     }
   }
+
+  // 2. Tentar do Auth object
+  const authToken = client.handshake.auth.token;
+  if (authToken && typeof authToken === 'string') {
+    this.logger.debug('✅ Token encontrado no Auth object');
+    return authToken;
+  }
+
+  // 3. Tentar do Query parameters
+  const queryToken = client.handshake.query.token;
+  if (queryToken && typeof queryToken === 'string') {
+    this.logger.debug('✅ Token encontrado no Query parameter');
+    return queryToken;
+  }
+
+  this.logger.debug('❌ Nenhum token encontrado em nenhuma fonte');
+  return null;
+}
 
   handleDisconnect(client: Socket): void {
     this.clients.delete(client.id);
