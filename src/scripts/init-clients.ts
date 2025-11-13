@@ -3,35 +3,70 @@ import { AppModule } from '../app.module';
 import { ClientsService } from '../clients/clients.service';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
-  const clientsService = app.get(ClientsService);
+  const app = await NestFactory.createApplicationContext(AppModule, {
+    logger: ['error', 'warn'],
+  });
 
-  // Criar clientes iniciais
-  const clients = [
-    {
-      name: 'Loja A',
-      domain: 'loja-a.localhost',
-      primaryColor: '#FF5722',
-      secondaryColor: '#FFC107',
-    },
-    {
-      name: 'Loja B',
-      domain: 'loja-b.localhost',
-      primaryColor: '#2196F3',
-      secondaryColor: '#4CAF50',
-    },
-  ];
+  try {
+    const clientsService = app.get(ClientsService);
 
-  for (const client of clients) {
-    try {
-      await clientsService.create(client);
-      console.log(`Cliente "${client.name}" criado com sucesso!`);
-    } catch (error) {
-      console.log(`Erro ao criar cliente "${client.name}":`, error.message);
+    // Clientes a serem criados
+    const clients = [
+      {
+        name: 'Localhost Client',
+        domain: 'localhost:3000',
+        primaryColor: '#2ecc71',
+        secondaryColor: '#27ae60',
+      },
+      {
+        name: 'Devnology',
+        domain: 'devnology.com:3000',
+        primaryColor: '#2ecc71',
+        secondaryColor: '#27ae60',
+      },
+      {
+        name: 'IN8',
+        domain: 'in8.com:3000',
+        primaryColor: '#8e44ad',
+        secondaryColor: '#9b59b6',
+      },
+    ];
+
+    console.log('🚀 Iniciando criação de clientes...\n');
+
+    for (const clientData of clients) {
+      try {
+        // Verificar se o cliente já existe
+        try {
+          await clientsService.findByDomain(clientData.domain);
+          console.log(
+            `⚠️  Cliente "${clientData.name}" já existe no domínio ${clientData.domain}!`,
+          );
+          continue;
+        } catch {
+          // Cliente não existe, continuar com a criação
+        }
+
+        const client = await clientsService.create(clientData);
+        console.log(`✅ Cliente "${client.name}" criado com sucesso!`);
+        console.log(`   🌐 Domínio: ${client.domain}`);
+        console.log(`   🎨 Cor primária: ${client.primaryColor}`);
+        console.log(`   🎨 Cor secundária: ${client.secondaryColor}\n`);
+      } catch (error) {
+        console.error(
+          `❌ Erro ao criar cliente "${clientData.name}":`,
+          error instanceof Error ? error.message : String(error),
+        );
+      }
     }
+  } catch (error) {
+    console.error(
+      '❌ Erro geral:',
+      error instanceof Error ? error.message : String(error),
+    );
+  } finally {
+    await app.close();
   }
-
-  await app.close();
 }
 
-bootstrap();
+bootstrap().catch(console.error);

@@ -1,35 +1,65 @@
 import { NestFactory } from '@nestjs/core';
-import { AppModule } from 'src/app.module';
-import { SuppliersService } from 'src/suppliers/suppliers.service';
+import { AppModule } from '../app.module';
+import { SuppliersService } from '../suppliers/suppliers.service';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
-  const suppliersService = app.get(SuppliersService);
+  const app = await NestFactory.createApplicationContext(AppModule, {
+    logger: ['error', 'warn'],
+  });
 
-  // Criar fornecedores iniciais
-  const suppliers = [
-    {
-      name: 'Fornecedor Brasileiro',
-      type: 'brazilian',
-      apiUrl: 'http://616d6bdb6dacbb001794ca17.mockapi.io/devnology/brazilian_provider',
-    },
-    {
-      name: 'Fornecedor Europeu',
-      type: 'european',
-      apiUrl: 'http://616d6bdb6dacbb001794ca17.mockapi.io/devnology/european_provider',
-    },
-  ];
+  try {
+    const suppliersService = app.get(SuppliersService);
 
-  for (const supplier of suppliers) {
-    try {
-      await suppliersService.create(supplier);
-      console.log(`Fornecedor "${supplier.name}" criado com sucesso!`);
-    } catch (error) {
-      console.log(`Erro ao criar fornecedor "${supplier.name}":`, error.message);
+    // Fornecedores a serem criados
+    const suppliers = [
+      {
+        name: 'Fornecedor Brasileiro',
+        type: 'brazilian',
+        apiUrl:
+          'http://616d6bdb6dacbb001794ca17.mockapi.io/devnology/brazilian_provider',
+      },
+      {
+        name: 'Fornecedor Europeu',
+        type: 'european',
+        apiUrl:
+          'http://616d6bdb6dacbb001794ca17.mockapi.io/devnology/european_provider',
+      },
+    ];
+
+    console.log('🚀 Iniciando criação de fornecedores...\n');
+
+    for (const supplierData of suppliers) {
+      try {
+        // Verificar se o fornecedor já existe
+        const existingSuppliers = await suppliersService.findAll();
+        const exists = existingSuppliers.find(
+          (s) => s.name === supplierData.name,
+        );
+
+        if (exists) {
+          console.log(`⚠️  Fornecedor "${supplierData.name}" já existe!`);
+          continue;
+        }
+
+        const supplier = await suppliersService.create(supplierData);
+        console.log(`✅ Fornecedor "${supplier.name}" criado com sucesso!`);
+        console.log(`   🔗 URL: ${supplier.apiUrl}`);
+        console.log(`   🏷️  Tipo: ${supplier.type}\n`);
+      } catch (error: any) {
+        console.error(
+          `❌ Erro ao criar fornecedor "${supplierData.name}":`,
+          error instanceof Error ? error.message : String(error),
+        );
+      }
     }
+  } catch (error: any) {
+    console.error(
+      '❌ Erro geral:',
+      error instanceof Error ? error.message : String(error),
+    );
+  } finally {
+    await app.close();
   }
-
-  await app.close();
 }
 
-bootstrap();
+bootstrap().catch(console.error);
