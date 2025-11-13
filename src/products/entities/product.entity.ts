@@ -6,10 +6,10 @@ export class Product {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column()
+  @Column({nullable: true})
   name: string;
 
-  @Column()
+  @Column({nullable: true})
   description: string;
 
   @Column('decimal', { precision: 10, scale: 2 })
@@ -39,8 +39,9 @@ export class Product {
   @Column('simple-json', { nullable: true })
   details: Record<string, any>;
 
-  @Column()
-  externalId: string; // ID do produto no fornecedor
+  @Column({ name: 'external_id', nullable: true })
+  externalId: string;
+
 
   @ManyToOne(() => Supplier, (supplier) => supplier.products)
   @JoinColumn({ name: 'supplier_id' })

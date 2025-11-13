@@ -58,4 +58,16 @@ export class ClientsService {
     const client = await this.findOne(id);
     await this.clientRepository.remove(client);
   }
+
+  async createIfNotExists(data: Partial<Client>): Promise<Client> {
+  const existing = await this.clientRepository.findOne({
+    where: { domain: data.domain },
+  });
+
+  if (existing) return existing;
+
+  const client = this.clientRepository.create(data);
+  return this.clientRepository.save(client);
+}
+
 }

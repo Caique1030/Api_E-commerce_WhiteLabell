@@ -6,14 +6,15 @@ export class Supplier {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ unique: true })
+  @Column({ unique: true  , nullable: true})
   name: string;
 
-  @Column()
+  @Column({  nullable: true })
   type: string; // 'brazilian' ou 'european'
 
-  @Column()
+  @Column({ name: 'api_url', nullable: true })
   apiUrl: string;
+
 
   @Column({ default: true })
   isActive: boolean;

@@ -7,13 +7,13 @@ export class User {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ unique: true })
+  @Column({ unique: true , nullable: true })
   email: string;
 
-  @Column()
+  @Column({ nullable: true })
   name: string;
 
-  @Column()
+  @Column({ nullable: true })
   @Exclude()
   password: string;
 
@@ -23,12 +23,13 @@ export class User {
   @Column({ default: 'user' })
   role: string;
 
-  @ManyToOne(() => Client, (client) => client.users)
+  @ManyToOne(() => Client, (client) => client.users, { eager: true })
   @JoinColumn({ name: 'client_id' })
   client: Client;
 
-  @Column({ name: 'client_id', nullable: true })
+  @Column({ name: 'client_id', nullable: false })
   clientId: string;
+
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;

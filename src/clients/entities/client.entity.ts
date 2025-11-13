@@ -6,10 +6,11 @@ export class Client {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ unique: true })
+  @Column({ unique: true ,  nullable: true })
   name: string;
+  
 
-  @Column({ unique: true })
+  @Column({ unique: true , nullable: true})
   domain: string;
 
   @Column({ nullable: true })
