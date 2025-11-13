@@ -17,7 +17,7 @@ export class Product {
   @Column({ nullable: true })
   name: string;
 
-  @Column({nullable: true}{ nullable: true, type: 'text' })
+  @Column({ nullable: true })
   description: string;
 
   @Column({ type: 'decimal', precision: 10, scale: 2 })
@@ -44,18 +44,14 @@ export class Product {
   @Column({ default: false })
   hasDiscount: boolean;
 
-  @Column({ type: 'json', nullable: true })
-  details: any;
-
-  @Column({ nullable: true })
-  externalId: string;
-
   @Column({ name: 'external_id', nullable: true })
   externalId: string;
 
+  @Column({ name: 'supplier_id', nullable: true })
+  supplierId: string;
 
   @ManyToOne(() => Supplier)
-  @JoinColumn({ name: 'supplierId' })
+  @JoinColumn({ name: 'supplier_id' })
   supplier: Supplier;
 
   @CreateDateColumn({ name: 'created_at' })

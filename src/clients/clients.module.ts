@@ -3,12 +3,11 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { ClientsService } from './clients.service';
 import { ClientsController } from './clients.controller';
 import { Client } from './entities/client.entity';
-import { EventsModule } from '../events/events.module'; // Importar o EventsModule
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Client]),
-    EventsModule, // Adicionar o EventsModule
+    // Remove EventsModule daqui - use o SharedModule global
   ],
   controllers: [ClientsController],
   providers: [ClientsService],

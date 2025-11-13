@@ -212,7 +212,6 @@ export class ProductsService {
               gallery: europeanProduct.gallery,
               hasDiscount: europeanProduct.hasDiscount,
               discountValue: europeanProduct.discountValue,
-              details: europeanProduct.details,
               externalId: externalProductId,
               supplierId: supplier.id,
             };

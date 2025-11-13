@@ -1,11 +1,9 @@
 import { Module } from '@nestjs/common';
 import { EventsGateway } from './events.gateway';
-import { AuthModule } from '../auth/auth.module';
+import { AuthModule } from 'src/auth/auth.module';
 
 @Module({
-  imports: [
-    AuthModule, // Importando o AuthModule ao invés do JwtModule
-  ],
+  imports: [AuthModule],
   providers: [EventsGateway],
   exports: [EventsGateway],
 })
