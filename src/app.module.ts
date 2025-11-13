@@ -8,6 +8,7 @@ import { AuthModule } from './auth/auth.module';
 import { ClientsModule } from './clients/clients.module';
 import { ProductsModule } from './products/products.module';
 import { SuppliersModule } from './suppliers/suppliers.module';
+import { EventsModule } from './events/events.module'; // Importar o novo módulo
 import { ClientMiddleware } from './clients/middleware/client.middleware';
 import config from './config/config';
 
@@ -23,6 +24,7 @@ import config from './config/config';
     ClientsModule,
     ProductsModule,
     SuppliersModule,
+    EventsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

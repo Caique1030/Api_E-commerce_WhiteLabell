@@ -1,31 +1,56 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Client } from './entities/client.entity';
 import { CreateClientDto } from './dto/create-client.dto';
 import { UpdateClientDto } from './dto/update-client.dto';
+import { ClientEvent } from '../interfaces/event.interface';
+import { EventsGateway } from 'src/events/events.gateway';
 
 @Injectable()
 export class ClientsService {
   constructor(
     @InjectRepository(Client)
     private readonly clientRepository: Repository<Client>,
+    private readonly eventsGateway: EventsGateway, // Injetar EventsGateway
   ) {}
 
   async create(createClientDto: CreateClientDto): Promise<Client> {
-    const { name, domain } = createClientDto;
-
-    // Verificar se já existe um cliente com esse nome ou domínio
-    const existingClient = await this.clientRepository.findOne({
-      where: [{ name }, { domain }],
+    // Verificar nome duplicado
+    const existingNameClient = await this.clientRepository.findOne({
+      where: { name: createClientDto.name },
     });
 
-    if (existingClient) {
-      throw new ConflictException('Nome ou domínio já está em uso');
+    if (existingNameClient) {
+      throw new ConflictException(
+        `Nome '${createClientDto.name}' já está em uso`,
+      );
+    }
+
+    // Verificar domínio duplicado
+    const existingDomainClient = await this.clientRepository.findOne({
+      where: { domain: createClientDto.domain },
+    });
+
+    if (existingDomainClient) {
+      throw new ConflictException(
+        `Domínio '${createClientDto.domain}' já está em uso`,
+      );
     }
 
     const newClient = this.clientRepository.create(createClientDto);
-    return this.clientRepository.save(newClient);
+    const savedClient = await this.clientRepository.save(newClient);
+
+    // Notificar sobre a criação do cliente
+    this.eventsGateway.notifyClientCreated(
+      savedClient as unknown as ClientEvent,
+    );
+
+    return savedClient;
   }
 
   async findAll(): Promise<Client[]> {
@@ -33,30 +58,78 @@ export class ClientsService {
   }
 
   async findOne(id: string): Promise<Client> {
-    const client = await this.clientRepository.findOne({ where: { id } });
+    const client = await this.clientRepository.findOne({
+      where: { id },
+      relations: ['users'],
+    });
+
     if (!client) {
       throw new NotFoundException(`Cliente com ID ${id} não encontrado`);
     }
+
     return client;
   }
 
   async findByDomain(domain: string): Promise<Client> {
-    const client = await this.clientRepository.findOne({ where: { domain, isActive: true } });
+    const client = await this.clientRepository.findOne({
+      where: { domain, isActive: true },
+    });
+
     if (!client) {
-      throw new NotFoundException(`Cliente com domínio ${domain} não encontrado`);
+      throw new NotFoundException(
+        `Cliente com domínio ${domain} não encontrado`,
+      );
     }
+
     return client;
   }
 
   async update(id: string, updateClientDto: UpdateClientDto): Promise<Client> {
     const client = await this.findOne(id);
+
+    // Verificar nome duplicado se estiver sendo atualizado
+    if (updateClientDto.name && updateClientDto.name !== client.name) {
+      const existingNameClient = await this.clientRepository.findOne({
+        where: { name: updateClientDto.name },
+      });
+
+      if (existingNameClient) {
+        throw new ConflictException(
+          `Nome '${updateClientDto.name}' já está em uso`,
+        );
+      }
+    }
+
+    // Verificar domínio duplicado se estiver sendo atualizado
+    if (updateClientDto.domain && updateClientDto.domain !== client.domain) {
+      const existingDomainClient = await this.clientRepository.findOne({
+        where: { domain: updateClientDto.domain },
+      });
+
+      if (existingDomainClient) {
+        throw new ConflictException(
+          `Domínio '${updateClientDto.domain}' já está em uso`,
+        );
+      }
+    }
+
     Object.assign(client, updateClientDto);
-    return this.clientRepository.save(client);
+    const updatedClient = await this.clientRepository.save(client);
+
+    // Notificar sobre a atualização do cliente
+    this.eventsGateway.notifyClientUpdated(
+      updatedClient as unknown as ClientEvent,
+    );
+
+    return updatedClient;
   }
 
   async remove(id: string): Promise<void> {
     const client = await this.findOne(id);
     await this.clientRepository.remove(client);
+
+    // Notificar sobre a remoção do cliente
+    this.eventsGateway.notifyClientRemoved(id);
   }
 
   async createIfNotExists(data: Partial<Client>): Promise<Client> {

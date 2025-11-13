@@ -1,4 +1,8 @@
-import { Injectable, UnauthorizedException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  UnauthorizedException,
+  BadRequestException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '../users/users.service';
 import { ClientsService } from '../clients/clients.service';
@@ -19,7 +23,7 @@ export class AuthService {
   async validateUser(email: string, password: string): Promise<any> {
     const user = await this.usersService.findByEmail(email);
 
-    if (user && await bcrypt.compare(password, user.password)) {
+    if (user && (await bcrypt.compare(password, user.password))) {
       const { password, ...result } = user;
       return result;
     }
@@ -35,7 +39,9 @@ export class AuthService {
     const client = await this.clientsService.findByDomain(host);
 
     if (!client) {
-      throw new UnauthorizedException(`Cliente não encontrado para o domínio ${host}`);
+      throw new UnauthorizedException(
+        `Cliente não encontrado para o domínio ${host}`,
+      );
     }
 
     // Verifica se o usuário pertence a esse client
@@ -86,7 +92,6 @@ export class AuthService {
     if (existingUser) {
       throw new BadRequestException('E-mail já cadastrado');
     }
-
 
     // Cria o usuário associado ao client correto
     const user = await this.usersService.create({

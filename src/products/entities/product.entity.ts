@@ -1,4 +1,12 @@
-import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, JoinColumn, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  ManyToOne,
+  JoinColumn,
+  CreateDateColumn,
+  UpdateDateColumn,
+} from 'typeorm';
 import { Supplier } from '../../suppliers/entities/supplier.entity';
 
 @Entity('products')
@@ -6,19 +14,19 @@ export class Product {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({nullable: true})
+  @Column({ nullable: true })
   name: string;
 
-  @Column({nullable: true})
+  @Column({nullable: true}{ nullable: true, type: 'text' })
   description: string;
 
-  @Column('decimal', { precision: 10, scale: 2 })
+  @Column({ type: 'decimal', precision: 10, scale: 2 })
   price: number;
 
   @Column({ nullable: true })
   image: string;
 
-  @Column('simple-json', { nullable: true })
+  @Column({ type: 'simple-array', nullable: true })
   gallery: string[];
 
   @Column({ nullable: true })
@@ -36,19 +44,19 @@ export class Product {
   @Column({ default: false })
   hasDiscount: boolean;
 
-  @Column('simple-json', { nullable: true })
-  details: Record<string, any>;
+  @Column({ type: 'json', nullable: true })
+  details: any;
+
+  @Column({ nullable: true })
+  externalId: string;
 
   @Column({ name: 'external_id', nullable: true })
   externalId: string;
 
 
-  @ManyToOne(() => Supplier, (supplier) => supplier.products)
-  @JoinColumn({ name: 'supplier_id' })
+  @ManyToOne(() => Supplier)
+  @JoinColumn({ name: 'supplierId' })
   supplier: Supplier;
-
-  @Column({ name: 'supplier_id' })
-  supplierId: string;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
