@@ -29,11 +29,15 @@ async function bootstrap() {
     }
 
     // Verificar se o admin já existe
+        // Verificar se o admin já existe
+    let existingAdmin;
     try {
-      const existingAdmin = await usersService.findByEmail('admin@example.com');
-      console.log('Usuário administrador já existe!');
-      console.log('Email:', existingAdmin.email || '');
-      return;
+      existingAdmin = await usersService.findByEmail('admin@example.com');
+      if (existingAdmin) {
+        console.log('Usuário administrador já existe!');
+        console.log('Email:', existingAdmin.email || '');
+        return;
+      }
     } catch {
       // Admin não existe, criar um novo
     }

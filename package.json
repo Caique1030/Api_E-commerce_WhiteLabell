@@ -21,7 +21,8 @@
     "seed:suppliers": "ts-node -r tsconfig-paths/register src/scripts/init-suppliers.ts",
     "seed:clients": "ts-node -r tsconfig-paths/register src/scripts/init-clients.ts",
     "seed:admin": "ts-node -r tsconfig-paths/register src/scripts/init-admin.ts",
-    "seed:all": "npm run seed:suppliers && npm run seed:clients && npm run seed:admin"
+    "seed:all": "npm run seed:suppliers && npm run seed:clients && npm run seed:admin",
+    "db:init": "DB_FORCE_INIT=true nest start" 
   },
   "dependencies": {
     "@nestjs/axios": "^4.0.1",

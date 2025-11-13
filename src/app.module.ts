@@ -11,6 +11,7 @@ import { SuppliersModule } from './suppliers/suppliers.module';
 import { EventsModule } from './events/events.module';
 import { SharedModule } from './shared/shared.module'; // Novo módulo compartilhado
 import { ClientMiddleware } from './clients/middleware/client.middleware';
+import { InitializationModule } from './initialization/initialization.module';
 import config from './config/config';
 
 @Module({
@@ -27,6 +28,7 @@ import config from './config/config';
     ProductsModule,
     SuppliersModule,
     EventsModule,
+    InitializationModule,
   ],
   controllers: [AppController],
   providers: [AppService],
