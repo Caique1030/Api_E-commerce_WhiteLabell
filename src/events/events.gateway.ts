@@ -42,20 +42,12 @@ export class EventsGateway
 
 async handleConnection(client: Socket): Promise<void> {
   try {
-    this.logger.debug(`Handshake headers: ${JSON.stringify(client.handshake.headers)}`);
-    this.logger.debug(`Handshake auth: ${JSON.stringify(client.handshake.auth)}`);
-    this.logger.debug(`Handshake query: ${JSON.stringify(client.handshake.query)}`);
-
-    // 🔥 CORREÇÃO: Extrair token corretamente
     const token = this.extractToken(client);
-    
-    this.logger.debug(`🔍 Token extraído: ${token ? 'SIM' : 'NÃO'}`);
     
     if (!token) {
       this.logger.warn(`Client rejected: No authentication token provided - ${client.id}`);
-      // Enviar mensagem de erro antes de desconectar
       client.emit('auth_error', { 
-        message: 'Token de autenticação não fornecido. Use: Authorization: Bearer <token>' 
+        message: 'Token de autenticação não fornecido' 
       });
       setTimeout(() => client.disconnect(), 1000);
       return;
@@ -72,26 +64,32 @@ async handleConnection(client: Socket): Promise<void> {
         clientId: payload.clientId,
       });
 
-      // Adicionar cliente a salas específicas para targeting de eventos
+      // ✅ CORREÇÃO: Sistema de salas melhorado
+      
+      // 1. Sala do usuário individual (para mensagens privadas)
       await client.join(`user:${payload.sub}`);
-
+      
+      // 2. Sala do cliente (DOMÍNIO) - TODOS os usuários deste cliente
       if (payload.clientId) {
         await client.join(`client:${payload.clientId}`);
+        this.logger.debug(`👥 Usuário ${payload.sub} entrou na sala do cliente: ${payload.clientId}`);
       }
-
-      // Se o usuário for admin, adicionar à sala de admins
+      
+      // 3. Sala de admins (apenas para administradores)
       if (payload.role === 'admin') {
         await client.join('admins');
+        this.logger.debug(`👑 Usuário ${payload.sub} é admin, entrou na sala de admins`);
       }
 
-      this.logger.log(`Client connected: ${client.id} - User: ${payload.sub} - Client: ${payload.clientId || 'N/A'}`);
+      this.logger.log(`Client connected: ${client.id} - User: ${payload.sub} - Client: ${payload.clientId || 'N/A'} - Role: ${payload.role}`);
       
       // Enviar confirmação de conexão bem-sucedida
       client.emit('connected', {
         message: 'Conectado e autenticado com sucesso!',
         userId: payload.sub,
         clientId: payload.clientId,
-        role: payload.role
+        role: payload.role,
+        rooms: ['user:' + payload.sub, 'client:' + payload.clientId, ...(payload.role === 'admin' ? ['admins'] : [])]
       });
 
     } catch (error) {
@@ -181,100 +179,119 @@ private extractToken(client: Socket): string | null {
     this.logger.debug(`Emitted supplier:removed event - ${supplierId}`);
   }
 
-  // === Métodos para Produtos ===
-
-  notifyProductCreated(product: ProductEvent): void {
-    // Notifica admins
-    this.server.to('admins').emit('product:created', {
-      message: 'Novo produto criado',
-      data: product,
-    } as EventData<ProductEvent>);
-
-    // Notifica clientes específicos se o produto estiver associado a um cliente
-    if (product.clientId) {
-      this.server.to(`client:${product.clientId}`).emit('product:created', {
-        message: 'Novo produto disponível',
-        data: product,
-      } as EventData<ProductEvent>);
-    }
-
-    this.logger.debug(`Emitted product:created event - ${product.id}`);
-  }
-
-  notifyProductUpdated(product: ProductEvent): void {
-    // Notifica admins
-    this.server.to('admins').emit('product:updated', {
-      message: 'Produto atualizado',
-      data: product,
-    } as EventData<ProductEvent>);
-
-    // Notifica clientes específicos se o produto estiver associado a um cliente
-    if (product.clientId) {
-      this.server.to(`client:${product.clientId}`).emit('product:updated', {
-        message: 'Produto atualizado',
-        data: product,
-      } as EventData<ProductEvent>);
-    }
-
-    this.logger.debug(`Emitted product:updated event - ${product.id}`);
-  }
-
-  notifyProductRemoved(productId: string, clientId?: string): void {
-    // Notifica admins
-    this.server.to('admins').emit('product:removed', {
-      message: 'Produto removido',
-      data: { id: productId },
-    } as EventData<{ id: string }>);
-
-    // Notifica clientes específicos se o produto estiver associado a um cliente
-    if (clientId) {
-      this.server.to(`client:${clientId}`).emit('product:removed', {
-        message: 'Produto não está mais disponível',
-        data: { id: productId },
-      } as EventData<{ id: string }>);
-    }
-
-    this.logger.debug(`Emitted product:removed event - ${productId}`);
-  }
-
   // === Métodos para Clientes ===
 
-  notifyClientCreated(client: ClientEvent): void {
-    this.server.to('admins').emit('client:created', {
-      message: 'Nova loja criada',
-      data: client,
-    } as EventData<ClientEvent>);
+notifyClientCreated(client: ClientEvent): void {
+  // ✅ CORREÇÃO: Enviar para admins E para o próprio cliente
+  this.server.to('admins').emit('client:created', {
+    message: 'Nova loja criada',
+    data: client,
+  } as EventData<ClientEvent>);
 
-    this.logger.debug(`Emitted client:created event - ${client.id}`);
+  // ✅ NOVO: Enviar para todos os usuários deste cliente
+  this.server.to(`client:${client.id}`).emit('client:created', {
+    message: 'Sua loja foi configurada',
+    data: {
+      name: client.name,
+      domain: client.domain,
+      primaryColor: client.primaryColor,
+      secondaryColor: client.secondaryColor,
+    },
+  } as EventData<Partial<ClientEvent>>);
+
+  this.logger.debug(`Emitted client:created event - ${client.id}`);
+}
+
+notifyClientUpdated(client: ClientEvent): void {
+  // ✅ CORREÇÃO: Enviar para admins E para o próprio cliente
+  this.server.to('admins').emit('client:updated', {
+    message: 'Loja atualizada',
+    data: client,
+  } as EventData<ClientEvent>);
+
+  // ✅ CORREÇÃO: Enviar para todos os usuários deste cliente
+  this.server.to(`client:${client.id}`).emit('client:updated', {
+    message: 'Configurações da loja foram atualizadas',
+    data: {
+      name: client.name,
+      domain: client.domain,
+      primaryColor: client.primaryColor,
+      secondaryColor: client.secondaryColor,
+    },
+  } as EventData<Partial<ClientEvent>>);
+
+  this.logger.debug(`Emitted client:updated event - ${client.id}`);
+}
+
+notifyClientRemoved(clientId: string): void {
+  // ✅ CORREÇÃO: Enviar para admins E notificar usuários do cliente removido
+  this.server.to('admins').emit('client:removed', {
+    message: 'Loja removida',
+    data: { id: clientId },
+  } as EventData<{ id: string }>);
+
+  // ✅ NOVO: Notificar usuários que a loja foi removida
+  this.server.to(`client:${clientId}`).emit('client:removed', {
+    message: 'Esta loja não está mais disponível',
+    data: { id: clientId },
+  } as EventData<{ id: string }>);
+
+  this.logger.debug(`Emitted client:removed event - ${clientId}`);
+}
+
+// === Métodos para Produtos ===
+
+notifyProductCreated(product: ProductEvent): void {
+  // ✅ CORREÇÃO: Enviar para admins E para o cliente do produto
+  this.server.to('admins').emit('product:created', {
+    message: 'Novo produto criado',
+    data: product,
+  } as EventData<ProductEvent>);
+
+  // ✅ CORREÇÃO: Se o produto tem clientId, enviar para todos do cliente
+  if (product.clientId) {
+    this.server.to(`client:${product.clientId}`).emit('product:created', {
+      message: 'Novo produto disponível na sua loja',
+      data: product,
+    } as EventData<ProductEvent>);
   }
 
-  notifyClientUpdated(client: ClientEvent): void {
-    this.server.to('admins').emit('client:updated', {
-      message: 'Loja atualizada',
-      data: client,
-    } as EventData<ClientEvent>);
+  this.logger.debug(`Emitted product:created event - ${product.id}`);
+}
 
-    // Notificar usuários específicos deste cliente
-    this.server.to(`client:${client.id}`).emit('client:updated', {
-      message: 'Configurações da loja foram atualizadas',
-      data: {
-        name: client.name,
-        domain: client.domain,
-        logo: client.logo,
-        primaryColor: client.primaryColor,
-        secondaryColor: client.secondaryColor,
-      },
-    } as EventData<Partial<ClientEvent>>);
+notifyProductUpdated(product: ProductEvent): void {
+  // ✅ CORREÇÃO: Enviar para admins E para o cliente do produto
+  this.server.to('admins').emit('product:updated', {
+    message: 'Produto atualizado',
+    data: product,
+  } as EventData<ProductEvent>);
 
-    this.logger.debug(`Emitted client:updated event - ${client.id}`);
+  // ✅ CORREÇÃO: Se o produto tem clientId, enviar para todos do cliente
+  if (product.clientId) {
+    this.server.to(`client:${product.clientId}`).emit('product:updated', {
+      message: 'Produto atualizado na sua loja',
+      data: product,
+    } as EventData<ProductEvent>);
   }
 
-  notifyClientRemoved(clientId: string): void {
-    this.server.to('admins').emit('client:removed', {
-      message: 'Loja removida',
-      data: { id: clientId },
+  this.logger.debug(`Emitted product:updated event - ${product.id}`);
+}
+
+notifyProductRemoved(productId: string, clientId?: string): void {
+  // ✅ CORREÇÃO: Enviar para admins E para o cliente do produto
+  this.server.to('admins').emit('product:removed', {
+    message: 'Produto removido',
+    data: { id: productId },
+  } as EventData<{ id: string }>);
+
+  // ✅ CORREÇÃO: Se o produto tem clientId, enviar para todos do cliente
+  if (clientId) {
+    this.server.to(`client:${clientId}`).emit('product:removed', {
+      message: 'Produto removido da sua loja',
+      data: { id: productId },
     } as EventData<{ id: string }>);
-
-    this.logger.debug(`Emitted client:removed event - ${clientId}`);
   }
+
+  this.logger.debug(`Emitted product:removed event - ${productId}`);
+}
 }
