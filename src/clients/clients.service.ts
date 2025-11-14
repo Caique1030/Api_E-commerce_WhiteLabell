@@ -16,7 +16,7 @@ export class ClientsService {
   constructor(
     @InjectRepository(Client)
     private readonly clientRepository: Repository<Client>,
-    private readonly eventsGateway: EventsGateway, // Injetar EventsGateway
+    // private readonly eventsGateway: EventsGateway, // Injetar EventsGateway
   ) {}
 
   async create(createClientDto: CreateClientDto): Promise<Client> {
