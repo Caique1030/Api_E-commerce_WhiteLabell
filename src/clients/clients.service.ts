@@ -8,15 +8,15 @@ import { Repository } from 'typeorm';
 import { Client } from './entities/client.entity';
 import { CreateClientDto } from './dto/create-client.dto';
 import { UpdateClientDto } from './dto/update-client.dto';
-import { ClientEvent } from '../interfaces/event.interface';
-// import { EventsGateway } from 'src/events/events.gateway';
+// import { ClientEvent } from '../interfaces/event.interface';
+import { EventsGateway } from 'src/events/events.gateway';
 
 @Injectable()
 export class ClientsService {
   constructor(
     @InjectRepository(Client)
     private readonly clientRepository: Repository<Client>,
-    // private readonly eventsGateway: EventsGateway, // Injetar EventsGateway
+    private readonly eventsGateway: EventsGateway, // Injetar EventsGateway
   ) {}
 
   async create(createClientDto: CreateClientDto): Promise<Client> {

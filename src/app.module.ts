@@ -9,7 +9,6 @@ import { ClientsModule } from './clients/clients.module';
 import { ProductsModule } from './products/products.module';
 import { SuppliersModule } from './suppliers/suppliers.module';
 import { EventsModule } from './events/events.module';
-import { SharedModule } from './shared/shared.module'; // Novo módulo compartilhado
 import { ClientMiddleware } from './clients/middleware/client.middleware';
 import { InitializationModule } from './initialization/initialization.module';
 import config from './config/config';
@@ -20,7 +19,6 @@ import config from './config/config';
       isGlobal: true,
       load: [config],
     }),
-    SharedModule, // Adicione primeiro - será global
     DatabaseModule,
     UsersModule,
     AuthModule,

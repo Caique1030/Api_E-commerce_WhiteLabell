@@ -15,8 +15,8 @@ import {
 } from '../interfaces';
 import { JwtPayload } from '../interfaces/jwt-payload.interface';
 import { JwtService } from '@nestjs/jwt';
-import { ClientsService } from '../clients/clients.service';
 import { ConnectedClient } from 'src/interfaces/connected-client.interface';
+import { ClientsService } from 'src/clients/clients.service';
 
 @WebSocketGateway({
   cors: {

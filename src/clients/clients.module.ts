@@ -1,16 +1,17 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ClientsService } from './clients.service';
 import { ClientsController } from './clients.controller';
 import { Client } from './entities/client.entity';
+import { AuthModule } from 'src/auth/auth.module';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([Client]),
-    // Remove EventsModule daqui - use o SharedModule global
-  ],
   controllers: [ClientsController],
   providers: [ClientsService],
+  imports: [
+    TypeOrmModule.forFeature([Client]),
+    forwardRef(() => AuthModule),
+  ],
   exports: [ClientsService],
 })
 export class ClientsModule {}
