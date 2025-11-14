@@ -20,7 +20,7 @@ export class InitializationService implements OnApplicationBootstrap {
     const options = this.getInitializationOptions();
     
     if (!options.enabled) {
-      this.logger.log('Inicialização automática desabilitada');
+      this.logger.log('Autostart disabled');
       return;
     }
 
@@ -36,14 +36,14 @@ export class InitializationService implements OnApplicationBootstrap {
   }
 
   private async initializeDatabase(options: InitializationOptions) {
-    this.logger.log('🚀 Iniciando verificação e população do banco de dados...');
+    this.logger.log(' Starting database verification and population...');
 
     try {
       await this.initializeClients(options);
       await this.initializeSuppliers(options);
       await this.initializeAdmin(options);
 
-      this.logger.log('🎉 Verificação e população do banco concluída!');
+      this.logger.log('Bank verification and population completed!');
     } catch (error) {
       this.logger.error('❌ Erro durante a inicialização:', error);
     }
@@ -72,33 +72,31 @@ export class InitializationService implements OnApplicationBootstrap {
     ];
 
     if (options.verbose) {
-      this.logger.log('🔄 Verificando clientes...');
+      this.logger.log(' Checking customers...');
     }
 
     for (const clientData of clients) {
       try {
-        // Verificar se o cliente já existe
         const existingClient = await this.clientsService
           .findByDomain(clientData.domain)
           .catch(() => null);
 
         if (existingClient && !options.force) {
           if (options.verbose) {
-            this.logger.log(`⚠️ Cliente "${clientData.name}" já existe!`);
+            this.logger.log(`Customer "${clientData.name}" already exists!`);
           }
           continue;
         }
 
         if (existingClient && options.force) {
-          // Opcional: atualizar cliente existente
           await this.clientsService.update(existingClient.id, clientData);
           if (options.verbose) {
-            this.logger.log(`🔄 Cliente "${clientData.name}" atualizado!`);
+            this.logger.log(`Customer "${clientData.name}" update!`);
           }
         } else {
           const client = await this.clientsService.create(clientData);
           if (options.verbose) {
-            this.logger.log(`✅ Cliente "${client.name}" criado com sucesso!`);
+            this.logger.log(`Customer "${client.name}" created success!`);
           }
         }
       } catch (error) {
@@ -121,33 +119,29 @@ export class InitializationService implements OnApplicationBootstrap {
       },
     ];
 
-    if (options.verbose) {
-      this.logger.log('🔄 Verificando fornecedores...');
-    }
+    
 
     for (const supplierData of suppliers) {
       try {
-        // Verificar se o fornecedor já existe
         const existingSuppliers = await this.suppliersService.findAll();
         const existingSupplier = existingSuppliers.find(s => s.name === supplierData.name);
 
         if (existingSupplier && !options.force) {
           if (options.verbose) {
-            this.logger.log(`⚠️ Fornecedor "${supplierData.name}" já existe!`);
+            this.logger.log(`Supplier "${supplierData.name}" already exists!`);
           }
           continue;
         }
 
         if (existingSupplier && options.force) {
-          // Opcional: atualizar fornecedor existente
           await this.suppliersService.update(existingSupplier.id, supplierData);
           if (options.verbose) {
-            this.logger.log(`🔄 Fornecedor "${supplierData.name}" atualizado!`);
+            this.logger.log(`Supplier "${supplierData.name}" update!`);
           }
         } else {
           const supplier = await this.suppliersService.create(supplierData);
           if (options.verbose) {
-            this.logger.log(`✅ Fornecedor "${supplier.name}" criado com sucesso!`);
+            this.logger.log(`Supplier "${supplier.name}" successfully created!`);
           }
         }
       } catch (error) {
@@ -157,31 +151,25 @@ export class InitializationService implements OnApplicationBootstrap {
   }
 
   private async initializeAdmin(options: InitializationOptions) {
-    if (options.verbose) {
-      this.logger.log('🔄 Verificando usuário administrador...');
-    }
+    
 
     try {
-      // Verificar se o admin já existe
       const existingAdmin = await this.usersService
         .findByEmail('admin@example.com')
         .catch(() => null);
 
       if (existingAdmin && !options.force) {
         if (options.verbose) {
-          this.logger.log('⚠️ Usuário administrador já existe!');
+          this.logger.log(' Administrator user already exists!');
         }
         return;
       }
 
-      // Garantir que existe um cliente para associar o admin
       let defaultClient;
       try {
         defaultClient = await this.clientsService.findByDomain('localhost:3000');
       } catch {
-        if (options.verbose) {
-          this.logger.log('Criando cliente padrão...');
-        }
+        
         defaultClient = await this.clientsService.create({
           name: 'Localhost Client',
           domain: 'localhost:3000',
@@ -189,12 +177,11 @@ export class InitializationService implements OnApplicationBootstrap {
           secondaryColor: '#27ae60',
         });
         if (options.verbose) {
-          this.logger.log('✅ Cliente padrão criado com sucesso!');
+          this.logger.log('Default client successfully created!');
         }
       }
 
       if (existingAdmin && options.force) {
-        // Atualizar admin existente
         await this.usersService.update(existingAdmin.id, {
           name: 'Administrador',
           password: 'admin123',
@@ -202,7 +189,7 @@ export class InitializationService implements OnApplicationBootstrap {
           clientId: defaultClient.id,
         });
         if (options.verbose) {
-          this.logger.log('🔄 Usuário administrador atualizado!');
+          this.logger.log('Admin user updated!');
         }
       } else {
         // Criar usuário admin
@@ -214,12 +201,7 @@ export class InitializationService implements OnApplicationBootstrap {
           clientId: defaultClient.id,
         });
 
-        if (options.verbose) {
-          this.logger.log('✅ Usuário administrador criado com sucesso!');
-          this.logger.log(`📧 Email: ${admin.email}`);
-          this.logger.log(`🔑 Senha: admin123`);
-          this.logger.log(`🏢 Cliente: ${defaultClient.name}`);
-        }
+       
       }
     } catch (error) {
       this.logger.error('❌ Erro ao criar usuário administrador:', error);

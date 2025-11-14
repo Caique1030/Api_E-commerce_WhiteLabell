@@ -8,7 +8,6 @@ import { Repository } from 'typeorm';
 import { Client } from './entities/client.entity';
 import { CreateClientDto } from './dto/create-client.dto';
 import { UpdateClientDto } from './dto/update-client.dto';
-// import { ClientEvent } from '../interfaces/event.interface';
 import { EventsGateway } from 'src/events/events.gateway';
 
 @Injectable()
@@ -20,32 +19,29 @@ export class ClientsService {
   ) {}
 
   async create(createClientDto: CreateClientDto): Promise<Client> {
-    // Verificar nome duplicado
     const existingNameClient = await this.clientRepository.findOne({
       where: { name: createClientDto.name },
     });
 
     if (existingNameClient) {
       throw new ConflictException(
-        `Nome '${createClientDto.name}' já está em uso`,
+        `name '${createClientDto.name}' is already in use`,
       );
     }
 
-    // Verificar domínio duplicado
     const existingDomainClient = await this.clientRepository.findOne({
       where: { domain: createClientDto.domain },
     });
 
     if (existingDomainClient) {
       throw new ConflictException(
-        `Domínio '${createClientDto.domain}' já está em uso`,
+        `Domain '${createClientDto.domain}' is already in use`,
       );
     }
 
     const newClient = this.clientRepository.create(createClientDto);
     const savedClient = await this.clientRepository.save(newClient);
 
-    // // Notificar sobre a criação do cliente
     // this.eventsGateway.notifyClientCreated(
     //   savedClient as unknown as ClientEvent,
     // );
@@ -64,7 +60,7 @@ export class ClientsService {
     });
 
     if (!client) {
-      throw new NotFoundException(`Cliente com ID ${id} não encontrado`);
+      throw new NotFoundException(`Customer with ID ${id} not found`);
     }
 
     return client;
@@ -77,7 +73,7 @@ export class ClientsService {
 
     if (!client) {
       throw new NotFoundException(
-        `Cliente com domínio ${domain} não encontrado`,
+        `Customer with domain ${domain} not found`,
       );
     }
 
@@ -87,7 +83,6 @@ export class ClientsService {
   async update(id: string, updateClientDto: UpdateClientDto): Promise<Client> {
     const client = await this.findOne(id);
 
-    // Verificar nome duplicado se estiver sendo atualizado
     if (updateClientDto.name && updateClientDto.name !== client.name) {
       const existingNameClient = await this.clientRepository.findOne({
         where: { name: updateClientDto.name },
@@ -95,12 +90,11 @@ export class ClientsService {
 
       if (existingNameClient) {
         throw new ConflictException(
-          `Nome '${updateClientDto.name}' já está em uso`,
+          `Name '${updateClientDto.name}' is already in use`,
         );
       }
     }
 
-    // Verificar domínio duplicado se estiver sendo atualizado
     if (updateClientDto.domain && updateClientDto.domain !== client.domain) {
       const existingDomainClient = await this.clientRepository.findOne({
         where: { domain: updateClientDto.domain },
@@ -108,7 +102,7 @@ export class ClientsService {
 
       if (existingDomainClient) {
         throw new ConflictException(
-          `Domínio '${updateClientDto.domain}' já está em uso`,
+          `Domain '${updateClientDto.domain}' is already in `,
         );
       }
     }
@@ -116,7 +110,6 @@ export class ClientsService {
     Object.assign(client, updateClientDto);
     const updatedClient = await this.clientRepository.save(client);
 
-    // // Notificar sobre a atualização do cliente
     // this.eventsGateway.notifyClientUpdated(
     //   updatedClient as unknown as ClientEvent,
     // );
@@ -128,7 +121,6 @@ export class ClientsService {
     const client = await this.findOne(id);
     await this.clientRepository.remove(client);
 
-    // // Notificar sobre a remoção do cliente
     // this.eventsGateway.notifyClientRemoved(id);
   }
 

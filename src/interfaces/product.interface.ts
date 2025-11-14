@@ -1,4 +1,3 @@
-// Define interfaces relacionadas a produtos
 export interface ProductEntity {
   id: string;
   name: string;

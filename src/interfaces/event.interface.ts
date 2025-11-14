@@ -1,4 +1,3 @@
-// Interfaces para eventos Socket.io
 export interface JwtPayload {
   sub: string;
   clientId?: string;
@@ -13,13 +12,11 @@ export interface EventData<T> {
   data: T;
 }
 
-// Interface base para todos os eventos
 export interface BaseEvent {
   id: string;
   [key: string]: any;
 }
 
-// Evento específico para Produto
 export interface ProductEvent extends BaseEvent {
   name?: string;
   description?: string;

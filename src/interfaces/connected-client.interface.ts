@@ -1,8 +1,7 @@
-// interfaces/connected-client.interface.ts
 import { Socket } from 'socket.io';
 
 export interface ConnectedClient {
-  socket: Socket; // Usando o tipo Socket ao invés de any
+  socket: Socket; 
   userId?: string;
   clientId?: string;
   domain?: string;

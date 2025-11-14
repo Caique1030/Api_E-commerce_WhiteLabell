@@ -10,7 +10,6 @@ async function bootstrap() {
   try {
     const clientsService = app.get(ClientsService);
 
-    // Clientes a serem criados
     const clients = [
       {
         name: 'Localhost Client',
@@ -36,7 +35,6 @@ async function bootstrap() {
 
     for (const clientData of clients) {
       try {
-        // Verificar se o cliente já existe
         try {
           await clientsService.findByDomain(clientData.domain);
           console.log(
@@ -44,7 +42,6 @@ async function bootstrap() {
           );
           continue;
         } catch {
-          // Cliente não existe, continuar com a criação
         }
 
         const client = await clientsService.create(clientData);

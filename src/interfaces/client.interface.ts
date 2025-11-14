@@ -1,4 +1,3 @@
-// Define interfaces relacionadas a clientes (lojas)
 export interface ClientEntity {
   id: string;
   name: string;
@@ -11,7 +10,6 @@ export interface ClientEntity {
   updatedAt: Date;
 }
 
-// Interface para o payload do JWT
 export interface JwtPayloadts {
   email: string;
   sub: string;
@@ -19,7 +17,6 @@ export interface JwtPayloadts {
   role: string;
 }
 
-// Interface para o retorno do login
 export interface LoginResponse {
   access_token: string;
   user: {
@@ -31,7 +28,6 @@ export interface LoginResponse {
   };
 }
 
-// Interface para usuário sem senha
 export interface UserWithoutPassword {
   id: string;
   email: string;

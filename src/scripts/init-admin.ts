@@ -12,12 +12,10 @@ async function bootstrap() {
     const usersService = app.get(UsersService);
     const clientsService = app.get(ClientsService);
 
-    // Primeiro, garantir que existe um cliente para associar o admin
     let defaultClient;
     try {
       defaultClient = await clientsService.findByDomain('localhost:3000');
     } catch {
-      // Se não existir, criar o cliente padrão
       console.log('Criando cliente padrão...');
       defaultClient = await clientsService.create({
         name: 'Localhost Client',
@@ -28,8 +26,6 @@ async function bootstrap() {
       console.log('Cliente padrão criado com sucesso!');
     }
 
-    // Verificar se o admin já existe
-        // Verificar se o admin já existe
     let existingAdmin;
     try {
       existingAdmin = await usersService.findByEmail('admin@example.com');
@@ -39,10 +35,8 @@ async function bootstrap() {
         return;
       }
     } catch {
-      // Admin não existe, criar um novo
     }
 
-    // Criar usuário admin
     const admin = await usersService.create({
       name: 'Administrador',
       email: 'admin@example.com',

@@ -32,10 +32,9 @@ export class ProductsService {
     const newProduct = this.productRepository.create(createProductDto);
     const savedProduct = await this.productRepository.save(newProduct);
     const client = this.request['client'];
-    const whitelabelId = client?.id;   // o id do domínio
+    const whitelabelId = client?.id;
     const domain = client?.domain;
 
-    // Notificar sobre a criação do produto
     const productEvent: ProductEvent = {
       id: savedProduct.id,
       name: savedProduct.name,
@@ -114,9 +113,9 @@ export class ProductsService {
     Object.assign(product, updateProductDto);
     const updatedProduct = await this.productRepository.save(product);
     const client = this.request['client'];
-    const whitelabelId = client?.id;   // o id do domínio
+    const whitelabelId = client?.id; 
     const domain = client?.domain;
-    // Notificar sobre a atualização do produto
+
     const productEvent: ProductEvent = {
       id: updatedProduct.id,
       name: updatedProduct.name,
@@ -132,13 +131,11 @@ export class ProductsService {
   async remove(id: string): Promise<void> {
     const product = await this.findOne(id);
     const client = this.request['client'];
-    const whitelabelId = client?.id;   // o id do domínio
-    // Extrair clientId de forma segura
+    const whitelabelId = client?.id;
     const clientId = whitelabelId;
 
     await this.productRepository.remove(product);
 
-    // Notificar sobre a remoção do produto
     this.eventsGateway.notifyProductRemoved(id, clientId , whitelabelId);
   }
 
@@ -156,18 +153,15 @@ export class ProductsService {
         );
 
         for (const externalProduct of products) {
-          // Verificar se externalProduct tem uma propriedade id de forma segura
           if (!externalProduct || typeof externalProduct !== 'object') {
-            continue; // Pular itens inválidos
+            continue;
           }
 
-          // Safely check for id property
           const externalProductId = this.getExternalProductId(externalProduct);
           if (!externalProductId) {
-            continue; // Skip products without ID
+            continue;
           }
 
-          // Procurar se o produto já existe no banco de dados
           const existingProduct = await this.productRepository.findOne({
             where: {
               externalId: externalProductId,
@@ -175,11 +169,9 @@ export class ProductsService {
             },
           });
 
-          // Mapear dados com base no tipo de fornecedor
           let productData: Partial<Product>;
 
           if (supplier.type === 'brazilian') {
-            // Fornecedor brasileiro
             const brazilianProduct =
               externalProduct as ExternalProductBrazilian;
             productData = {
@@ -199,7 +191,6 @@ export class ProductsService {
               supplierId: supplier.id,
             };
           } else {
-            // Fornecedor europeu
             const europeanProduct = externalProduct as ExternalProductEuropean;
             productData = {
               name: europeanProduct.name || '',
@@ -223,13 +214,11 @@ export class ProductsService {
           }
 
           if (existingProduct) {
-            // Atualizar produto existente
             Object.assign(existingProduct, productData);
             const updatedProduct =
               await this.productRepository.save(existingProduct);
               const client = this.request['client'];
               const whitelabelId = client?.id;
-            // Notificar sobre a atualização do produto
             const productEvent: ProductEvent = {
               id: updatedProduct.id,
               name: updatedProduct.name,
@@ -239,12 +228,10 @@ export class ProductsService {
 
             this.eventsGateway.notifyProductUpdated(productEvent , whitelabelId);
           } else {
-            // Criar novo produto
             const newProduct = this.productRepository.create(productData);
             const savedProduct = await this.productRepository.save(newProduct);
             const client = this.request['client'];
             const whitelabelId = client?.id;
-            // Notificar sobre a criação do produto
             const productEvent: ProductEvent = {
               id: savedProduct.id,
               name: savedProduct.name,
@@ -264,7 +251,6 @@ export class ProductsService {
     }
   }
 
-  // Helper method to safely extract id from external product
   private getExternalProductId(externalProduct: unknown): string | undefined {
     if (!externalProduct || typeof externalProduct !== 'object') {
       return undefined;
@@ -277,7 +263,6 @@ export class ProductsService {
       return undefined;
     }
 
-    // Ensure we can safely convert to string
     if (typeof id === 'string' || typeof id === 'number') {
       return String(id);
     }

@@ -17,7 +17,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
           password: dbConfig.password,
           database: dbConfig.database,
           entities: ['dist/**/*.entity{.ts,.js}'],
-          synchronize: process.env.NODE_ENV !== 'production', // NÃO usar em produção!
+          synchronize: process.env.NODE_ENV !== 'production', 
           autoLoadEntities: true,
         };
       },

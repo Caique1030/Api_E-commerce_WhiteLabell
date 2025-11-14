@@ -10,7 +10,6 @@ async function bootstrap() {
   try {
     const suppliersService = app.get(SuppliersService);
 
-    // Fornecedores a serem criados
     const suppliers = [
       {
         name: 'Fornecedor Brasileiro',
@@ -30,7 +29,6 @@ async function bootstrap() {
 
     for (const supplierData of suppliers) {
       try {
-        // Verificar se o fornecedor já existe
         const existingSuppliers = await suppliersService.findAll();
         const exists = existingSuppliers.find(
           (s) => s.name === supplierData.name,

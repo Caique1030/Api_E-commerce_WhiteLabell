@@ -49,38 +49,33 @@ export class EventsGateway
       const token = this.extractToken(client);
 
       if (!token) {
-        this.handleAuthError(client, 'Token de autenticação não fornecido');
+        this.handleAuthError(client, 'Authentication token not provided');
         return;
       }
 
       try {
-        // Decodificar o token JWT
         const payload = this.jwtService.verify(token);
         const userId = payload.sub;
         const clientId = payload.clientId;
         const role = payload.role;
 
-        // Extrair o domínio do handshake
         const domain = this.extractDomain(client);
 
-        // Encontrar o cliente whitelabel com base no domínio
         const whitelabelClient = await this.getClientByDomain(domain);
 
         if (!whitelabelClient) {
           this.handleAuthError(
             client,
-            `Cliente não encontrado para o domínio ${domain}`,
+            `Client not found for domain ${domain}`,
           );
           return;
         }
 
-        // Verificar se o usuário pertence ao cliente do domínio atual
         if (clientId !== whitelabelClient.id && role !== 'admin') {
-          this.handleAuthError(client, 'Usuário não pertence a este domínio');
+          this.handleAuthError(client, 'User does not belong to this domain');
           return;
         }
 
-        // Armazenar informações do cliente conectado
         this.clients.set(client.id, {
           socket: client,
           userId,
@@ -89,21 +84,15 @@ export class EventsGateway
           whitelabelId: whitelabelClient.id,
         });
 
-        // Sistema de salas aprimorado com isolamento por domínio
 
-        // 1. Sala do domínio - TODOS os usuários deste domínio
         await client.join(`domain:${whitelabelClient.id}`);
 
-        // 2. Sala do usuário individual dentro do domínio
         await client.join(`domain:${whitelabelClient.id}:user:${userId}`);
 
-        // 3. Sala do cliente dentro do domínio
         await client.join(`domain:${whitelabelClient.id}:client:${clientId}`);
 
-        // 4. Sala de admins específica deste domínio (apenas para administradores)
         if (role === 'admin') {
           await client.join(`domain:${whitelabelClient.id}:admins`);
-          // Manter sala global de admins para compatibilidade
           await client.join('admins');
         }
 
@@ -111,7 +100,6 @@ export class EventsGateway
           `Client connected: ${client.id} - User: ${userId} - Domain: ${domain} - WhitelabelID: ${whitelabelClient.id}`,
         );
 
-        // Enviar confirmação de conexão bem-sucedida
         client.emit('connected', {
           message: 'Conectado e autenticado com sucesso!',
           userId,
@@ -135,7 +123,6 @@ export class EventsGateway
     }
   }
 
-  // Método auxiliar para extrair domínio
   private extractDomain(client: Socket): string {
     const origin = client.handshake.headers.origin;
     const host = client.handshake.headers.host;
@@ -152,7 +139,6 @@ export class EventsGateway
     return (host as string) || 'unknown';
   }
 
-  // Método auxiliar para buscar cliente pelo domínio
   private async getClientByDomain(domain: string): Promise<any> {
     try {
       return await this.clientsService.findByDomain(domain);
@@ -162,7 +148,6 @@ export class EventsGateway
     }
   }
 
-  // Método auxiliar para tratamento de erros de autenticação
   private handleAuthError(client: Socket, message: string): void {
     this.logger.warn(`Client rejected: ${message} - ${client.id}`);
     client.emit('auth_error', { message });
@@ -170,11 +155,9 @@ export class EventsGateway
   }
 
   private extractToken(client: Socket): string | null {
-    // 1. Tentar do Header Authorization (com 'a' minúsculo)
     const authHeader = client.handshake.headers['authorization'];
     if (authHeader) {
       if (typeof authHeader === 'string') {
-        // Verificar se tem "Bearer " prefix
         if (authHeader.startsWith('Bearer ')) {
           this.logger.debug(
             '✅ Token encontrado no Header Authorization (com Bearer)',
@@ -189,14 +172,12 @@ export class EventsGateway
       }
     }
 
-    // 2. Tentar do Auth object
     const authToken = client.handshake.auth.token;
     if (authToken && typeof authToken === 'string') {
       this.logger.debug('✅ Token encontrado no Auth object');
       return authToken;
     }
 
-    // 3. Tentar do Query parameters
     const queryToken = client.handshake.query.token;
     if (queryToken && typeof queryToken === 'string') {
       this.logger.debug('✅ Token encontrado no Query parameter');
@@ -216,17 +197,15 @@ export class EventsGateway
 
   notifySupplierCreated(supplier: SupplierEvent, whitelabelId?: string): void {
     if (whitelabelId) {
-      // CORREÇÃO: Enviar para TODOS os usuários deste domínio
       this.server.to(`domain:${whitelabelId}`).emit('supplier:created', {
-        message: 'Novo fornecedor disponível',
+        message: 'New supplier available',
         data: supplier,
       } as EventData<SupplierEvent>);
 
-      // Envio específico para admins com informações adicionais
       this.server
         .to(`domain:${whitelabelId}:admins`)
         .emit('supplier:created:admin', {
-          message: 'Novo fornecedor criado',
+          message: 'New supplier created',
           data: supplier,
           isAdminEvent: true,
         });
@@ -235,9 +214,8 @@ export class EventsGateway
         `Emitted supplier:created event to domain ${whitelabelId} - ${supplier.id}`,
       );
     } else {
-      // Compatibilidade com o código existente
       this.server.to('admins').emit('supplier:created', {
-        message: 'Novo fornecedor criado',
+        message: 'New supplier created',
         data: supplier,
       } as EventData<SupplierEvent>);
 
@@ -249,17 +227,15 @@ export class EventsGateway
 
   notifySupplierUpdated(supplier: SupplierEvent, whitelabelId?: string): void {
     if (whitelabelId) {
-      // CORREÇÃO: Enviar para TODOS os usuários deste domínio
       this.server.to(`domain:${whitelabelId}`).emit('supplier:updated', {
         message: 'Fornecedor atualizado',
         data: supplier,
       } as EventData<SupplierEvent>);
 
-      // Envio específico para admins com informações adicionais
       this.server
         .to(`domain:${whitelabelId}:admins`)
         .emit('supplier:updated:admin', {
-          message: 'Detalhes do fornecedor atualizados',
+          message: 'Updated supplier details',
           data: supplier,
           isAdminEvent: true,
         });
@@ -268,9 +244,8 @@ export class EventsGateway
         `Emitted supplier:updated event to domain ${whitelabelId} - ${supplier.id}`,
       );
     } else {
-      // Compatibilidade com o código existente
       this.server.to('admins').emit('supplier:updated', {
-        message: 'Fornecedor atualizado',
+        message: 'Updated supplier',
         data: supplier,
       } as EventData<SupplierEvent>);
 
@@ -282,17 +257,15 @@ export class EventsGateway
 
   notifySupplierRemoved(supplierId: string, whitelabelId?: string): void {
     if (whitelabelId) {
-      // CORREÇÃO: Enviar para TODOS os usuários deste domínio
       this.server.to(`domain:${whitelabelId}`).emit('supplier:removed', {
-        message: 'Fornecedor não está mais disponível',
+        message: 'Supplier is no longer available',
         data: { id: supplierId },
       } as EventData<{ id: string }>);
 
-      // Envio específico para admins com informações adicionais
       this.server
         .to(`domain:${whitelabelId}:admins`)
         .emit('supplier:removed:admin', {
-          message: 'Fornecedor removido do sistema',
+          message: 'Supplier removed from the system',
           data: { id: supplierId },
           isAdminEvent: true,
         });
@@ -301,9 +274,8 @@ export class EventsGateway
         `Emitted supplier:removed event to domain ${whitelabelId} - ${supplierId}`,
       );
     } else {
-      // Compatibilidade com o código existente
       this.server.to('admins').emit('supplier:removed', {
-        message: 'Fornecedor removido',
+        message: 'Supplier removed',
         data: { id: supplierId },
       } as EventData<{ id: string }>);
 
@@ -319,7 +291,6 @@ export class EventsGateway
   //   // O whitelabelId aqui é o próprio client.id para clientes
   //   const domainId = whitelabelId || client.id;
 
-  //   // CORREÇÃO: Enviar para TODOS os usuários deste domínio
   //   this.server.to(`domain:${domainId}`).emit('client:created', {
   //     message: 'Nova loja disponível',
   //     data: {
@@ -331,14 +302,12 @@ export class EventsGateway
   //     },
   //   } as EventData<Partial<ClientEvent>>);
 
-  //   // Envio específico para admins com informações adicionais
   //   this.server.to(`domain:${domainId}:admins`).emit('client:created:admin', {
   //     message: 'Nova loja criada com detalhes completos',
   //     data: client,
   //     isAdminEvent: true,
   //   });
 
-  //   // Envio específico para usuários deste cliente
   //   this.server
   //     .to(`domain:${domainId}:client:${client.id}`)
   //     .emit('client:created:member', {
@@ -431,13 +400,12 @@ export class EventsGateway
 
   notifyProductCreated(product: ProductEvent, whitelabelId?: string): void {
     if (!whitelabelId && product.clientId) {
-      whitelabelId = product.clientId; // Usar clientId como whitelabelId se não fornecido
+      whitelabelId = product.clientId;
     }
 
     if (whitelabelId) {
-      // CORREÇÃO: Enviar para TODOS os usuários deste domínio
       this.server.to(`domain:${whitelabelId}`).emit('product:created', {
-        message: 'Novo produto disponível',
+        message: 'New product available',
         data: {
           id: product.id,
           name: product.name,
@@ -445,21 +413,19 @@ export class EventsGateway
         },
       });
 
-      // Envio específico para admins com informações adicionais
       this.server
         .to(`domain:${whitelabelId}:admins`)
         .emit('product:created:admin', {
-          message: 'Novo produto criado com detalhes completos',
+          message: 'New product created with complete details',
           data: product,
           isAdminEvent: true,
         });
 
-      // Envio específico para usuários do cliente deste produto
       if (product.clientId) {
         this.server
           .to(`domain:${whitelabelId}:client:${product.clientId}`)
           .emit('product:created:member', {
-            message: 'Novo produto disponível na sua loja',
+            message: 'New product available in your store',
             data: product,
           });
       }
@@ -468,9 +434,8 @@ export class EventsGateway
         `Emitted product:created event to domain ${whitelabelId} - ${product.id}`,
       );
     } else {
-      // Compatibilidade com o código existente
       this.server.to('admins').emit('product:created', {
-        message: 'Novo produto criado',
+        message: 'New product created',
         data: product,
       } as EventData<ProductEvent>);
 
@@ -487,13 +452,12 @@ export class EventsGateway
 
   notifyProductUpdated(product: ProductEvent, whitelabelId?: string): void {
     if (!whitelabelId && product.clientId) {
-      whitelabelId = product.clientId; // Usar clientId como whitelabelId se não fornecido
+      whitelabelId = product.clientId;
     }
 
     if (whitelabelId) {
-      // CORREÇÃO: Enviar para TODOS os usuários deste domínio
       this.server.to(`domain:${whitelabelId}`).emit('product:updated', {
-        message: 'Produto atualizado',
+        message: 'Updated product',
         data: {
           id: product.id,
           name: product.name,
@@ -501,21 +465,19 @@ export class EventsGateway
         },
       });
 
-      // Envio específico para admins com informações adicionais
       this.server
         .to(`domain:${whitelabelId}:admins`)
         .emit('product:updated:admin', {
-          message: 'Produto atualizado com detalhes completos',
+          message: 'Product updated with full details',
           data: product,
           isAdminEvent: true,
         });
 
-      // Envio específico para usuários do cliente deste produto
       if (product.clientId) {
         this.server
           .to(`domain:${whitelabelId}:client:${product.clientId}`)
           .emit('product:updated:member', {
-            message: 'Produto atualizado na sua loja',
+            message: 'Updated product in your store',
             data: product,
           });
       }
@@ -524,15 +486,14 @@ export class EventsGateway
         `Emitted product:updated event to domain ${whitelabelId} - ${product.id}`,
       );
     } else {
-      // Compatibilidade com o código existente
       this.server.to('admins').emit('product:updated', {
-        message: 'Produto atualizado',
+        message: 'Updated product',
         data: product,
       } as EventData<ProductEvent>);
 
       if (product.clientId) {
         this.server.to(`client:${product.clientId}`).emit('product:updated', {
-          message: 'Produto atualizado na sua loja',
+          message: 'Updated product in your store',
           data: product,
         } as EventData<ProductEvent>);
       }
@@ -547,31 +508,28 @@ export class EventsGateway
     whitelabelId?: string,
   ): void {
     if (!whitelabelId && clientId) {
-      whitelabelId = clientId; // Usar clientId como whitelabelId se não fornecido
+      whitelabelId = clientId; 
     }
 
     if (whitelabelId) {
-      // CORREÇÃO: Enviar para TODOS os usuários deste domínio
       this.server.to(`domain:${whitelabelId}`).emit('product:removed', {
-        message: 'Produto não está mais disponível',
+        message: 'Product is no longer available',
         data: { id: productId },
       });
 
-      // Envio específico para admins
       this.server
         .to(`domain:${whitelabelId}:admins`)
         .emit('product:removed:admin', {
-          message: 'Produto removido do sistema',
+          message: 'Product removed from the system',
           data: { id: productId },
           isAdminEvent: true,
         });
 
-      // Envio específico para usuários do cliente deste produto
       if (clientId) {
         this.server
           .to(`domain:${whitelabelId}:client:${clientId}`)
           .emit('product:removed:member', {
-            message: 'Produto removido da sua loja',
+            message: 'Product removed from your store',
             data: { id: productId },
           });
       }
@@ -580,15 +538,14 @@ export class EventsGateway
         `Emitted product:removed event to domain ${whitelabelId} - ${productId}`,
       );
     } else {
-      // Compatibilidade com o código existente
       this.server.to('admins').emit('product:removed', {
-        message: 'Produto removido',
+        message: 'Product removed',
         data: { id: productId },
       } as EventData<{ id: string }>);
 
       if (clientId) {
         this.server.to(`client:${clientId}`).emit('product:removed', {
-          message: 'Produto removido da sua loja',
+          message: 'Product removed from your store',
           data: { id: productId },
         } as EventData<{ id: string }>);
       }

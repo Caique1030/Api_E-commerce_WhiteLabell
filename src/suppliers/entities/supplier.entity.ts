@@ -17,7 +17,7 @@ export class Supplier {
   name: string;
 
   @Column({  nullable: true })
-  type: string; // 'brazilian' ou 'european'
+  type: string; 
 
   @Column({ name: 'api_url', nullable: true })
   apiUrl: string;

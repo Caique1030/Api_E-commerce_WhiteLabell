@@ -13,7 +13,6 @@ export class ClientMiddleware implements NestMiddleware {
       const client = await this.clientsService.findByDomain(host || '');
       req['client'] = client;
     } catch {
-      // Se não encontrar o cliente, deixa o req.client como undefined
       console.log(`Client not found for host: ${host}`);
     }
 

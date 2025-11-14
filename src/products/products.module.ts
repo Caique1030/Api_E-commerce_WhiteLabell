@@ -4,13 +4,13 @@ import { ProductsService } from './products.service';
 import { ProductsController } from './products.controller';
 import { Product } from './entities/product.entity';
 import { SuppliersModule } from '../suppliers/suppliers.module';
-import { EventsModule } from '../events/events.module'; // Importar o EventsModule
+import { EventsModule } from '../events/events.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Product]),
     SuppliersModule,
-    EventsModule, // Adicionar o EventsModule
+    EventsModule,
   ],
   controllers: [ProductsController],
   providers: [ProductsService],

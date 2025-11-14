@@ -17,9 +17,6 @@ export class AuthService {
     private clientsService: ClientsService,
   ) {}
 
-  // =========================================================
-  // 🔑 1. Validação do usuário (login)
-  // =========================================================
   async validateUser(email: string, password: string): Promise<any> {
     const user = await this.usersService.findByEmail(email);
 
@@ -31,25 +28,19 @@ export class AuthService {
     return null;
   }
 
-  // =========================================================
-  // 🔐 2. Login — verifica se o usuário pertence ao domínio
-  // =========================================================
   async login(user: any, host: string) {
-    // Busca o client com base no domínio do host (ex: localhost:3000)
     const client = await this.clientsService.findByDomain(host);
 
     if (!client) {
       throw new UnauthorizedException(
-        `Cliente não encontrado para o domínio ${host}`,
+        `Client not found for domain ${host}`,
       );
     }
 
-    // Verifica se o usuário pertence a esse client
     if (user.clientId !== client.id) {
-      throw new UnauthorizedException('Usuário não pertence a este cliente');
+      throw new UnauthorizedException('User does not belong to this client');
     }
 
-    // Gera o token JWT
     const payload = {
       email: user.email,
       sub: user.id,
@@ -68,16 +59,12 @@ export class AuthService {
     };
   }
 
-  // =========================================================
-  // 🧾 3. Registro de usuário
-  // =========================================================
+
   async register(registerDto: RegisterDto, host: string) {
     const { email, password, name, role } = registerDto;
 
-    // Verifica se existe client com esse domínio
     let client = await this.clientsService.findByDomain(host);
 
-    // Se não existir, cria automaticamente um client padrão (para ambientes locais)
     if (!client) {
       client = await this.clientsService.createIfNotExists({
         name: 'Localhost Client',
@@ -87,13 +74,11 @@ export class AuthService {
       });
     }
 
-    // Verifica se o e-mail já está em uso
     const existingUser = await this.usersService.findByEmail(email);
     if (existingUser) {
       throw new BadRequestException('E-mail já cadastrado');
     }
 
-    // Cria o usuário associado ao client correto
     const user = await this.usersService.create({
       email,
       name,

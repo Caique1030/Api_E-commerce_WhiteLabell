@@ -24,14 +24,13 @@ export class SuppliersService {
     private readonly httpService: HttpService,
     private readonly eventsGateway: EventsGateway,
 
-    @Inject(REQUEST) private readonly request: Request, // aqui está seu client atual
+    @Inject(REQUEST) private readonly request: Request, 
   ) {}
 
   async create(createSupplierDto: CreateSupplierDto): Promise<Supplier> {
     const { name } = createSupplierDto;
     const client = this.request['client'];
 
-    // Verificar se já existe um fornecedor com esse nome
     const existingSupplier = await this.supplierRepository.findOne({
       where: { name },
     });
@@ -43,7 +42,6 @@ export class SuppliersService {
     const newSupplier = this.supplierRepository.create(createSupplierDto);
     const savedSupplier = await this.supplierRepository.save(newSupplier);
 
-    // Notificar sobre a criação do fornecedor
     this.eventsGateway.notifySupplierCreated(savedSupplier , client?.id);
 
     return savedSupplier;
@@ -70,7 +68,6 @@ export class SuppliersService {
     const updatedSupplier = await this.supplierRepository.save(supplier);
     const client = this.request['client'];
 
-    // Notificar sobre a atualização do fornecedor
     this.eventsGateway.notifySupplierUpdated(updatedSupplier, client?.id);
 
     return updatedSupplier;
@@ -81,7 +78,6 @@ export class SuppliersService {
     await this.supplierRepository.remove(supplier);
     const client = this.request['client'];
 
-    // Notificar sobre a remoção do fornecedor
     this.eventsGateway.notifySupplierRemoved(id ,client?.id);
   }
 
