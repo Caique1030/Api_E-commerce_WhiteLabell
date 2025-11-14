@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   ConflictException,
+  Inject,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -11,18 +12,24 @@ import { UpdateSupplierDto } from './dto/update-supplier.dto';
 import { HttpService } from '@nestjs/axios';
 import { lastValueFrom } from 'rxjs';
 import { EventsGateway } from 'src/events/events.gateway';
+import { REQUEST } from '@nestjs/core';
+import type { Request } from 'express';
 
 @Injectable()
 export class SuppliersService {
-  constructor(
+ constructor(
     @InjectRepository(Supplier)
     private readonly supplierRepository: Repository<Supplier>,
+
     private readonly httpService: HttpService,
-    private readonly eventsGateway: EventsGateway, // Injetar EventsGateway
+    private readonly eventsGateway: EventsGateway,
+
+    @Inject(REQUEST) private readonly request: Request, // aqui está seu client atual
   ) {}
 
   async create(createSupplierDto: CreateSupplierDto): Promise<Supplier> {
     const { name } = createSupplierDto;
+    const client = this.request['client'];
 
     // Verificar se já existe um fornecedor com esse nome
     const existingSupplier = await this.supplierRepository.findOne({
@@ -37,7 +44,7 @@ export class SuppliersService {
     const savedSupplier = await this.supplierRepository.save(newSupplier);
 
     // Notificar sobre a criação do fornecedor
-    this.eventsGateway.notifySupplierCreated(savedSupplier);
+    this.eventsGateway.notifySupplierCreated(savedSupplier , client?.id);
 
     return savedSupplier;
   }
@@ -61,9 +68,10 @@ export class SuppliersService {
     const supplier = await this.findOne(id);
     Object.assign(supplier, updateSupplierDto);
     const updatedSupplier = await this.supplierRepository.save(supplier);
+    const client = this.request['client'];
 
     // Notificar sobre a atualização do fornecedor
-    this.eventsGateway.notifySupplierUpdated(updatedSupplier);
+    this.eventsGateway.notifySupplierUpdated(updatedSupplier, client?.id);
 
     return updatedSupplier;
   }
@@ -71,9 +79,10 @@ export class SuppliersService {
   async remove(id: string): Promise<void> {
     const supplier = await this.findOne(id);
     await this.supplierRepository.remove(supplier);
+    const client = this.request['client'];
 
     // Notificar sobre a remoção do fornecedor
-    this.eventsGateway.notifySupplierRemoved(id);
+    this.eventsGateway.notifySupplierRemoved(id ,client?.id);
   }
 
   async fetchProductsFromSupplier(supplierId: string): Promise<any[]> {

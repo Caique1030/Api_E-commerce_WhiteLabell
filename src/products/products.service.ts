@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Inject, Injectable, NotFoundException, Scope } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Like, FindManyOptions } from 'typeorm';
 import { Product } from './entities/product.entity';
@@ -12,12 +12,18 @@ import {
   ExternalProductEuropean,
 } from '../interfaces';
 import { EventsGateway } from 'src/events/events.gateway';
+import { REQUEST } from '@nestjs/core';
+import type { Request } from 'express';
 
-@Injectable()
+@Injectable({ scope: Scope.REQUEST })
 export class ProductsService {
   constructor(
     @InjectRepository(Product)
     private readonly productRepository: Repository<Product>,
+
+    @Inject(REQUEST)
+    private readonly request: Request,
+
     private readonly suppliersService: SuppliersService,
     private readonly eventsGateway: EventsGateway,
   ) {}
@@ -25,16 +31,19 @@ export class ProductsService {
   async create(createProductDto: CreateProductDto): Promise<Product> {
     const newProduct = this.productRepository.create(createProductDto);
     const savedProduct = await this.productRepository.save(newProduct);
+    const client = this.request['client'];
+    const whitelabelId = client?.id;   // o id do domínio
+    const domain = client?.domain;
 
     // Notificar sobre a criação do produto
     const productEvent: ProductEvent = {
       id: savedProduct.id,
       name: savedProduct.name,
       price: savedProduct.price,
-      clientId: this.getClientId(savedProduct),
+      clientId: whitelabelId,
     };
 
-    this.eventsGateway.notifyProductCreated(productEvent);
+    this.eventsGateway.notifyProductCreated(productEvent , whitelabelId);
 
     return savedProduct;
   }
@@ -104,40 +113,36 @@ export class ProductsService {
     const product = await this.findOne(id);
     Object.assign(product, updateProductDto);
     const updatedProduct = await this.productRepository.save(product);
-
+    const client = this.request['client'];
+    const whitelabelId = client?.id;   // o id do domínio
+    const domain = client?.domain;
     // Notificar sobre a atualização do produto
     const productEvent: ProductEvent = {
       id: updatedProduct.id,
       name: updatedProduct.name,
       price: updatedProduct.price,
-      clientId: this.getClientId(updatedProduct),
+      clientId: whitelabelId,
     };
 
-    this.eventsGateway.notifyProductUpdated(productEvent);
+    this.eventsGateway.notifyProductUpdated(productEvent , whitelabelId);
 
     return updatedProduct;
   }
 
   async remove(id: string): Promise<void> {
     const product = await this.findOne(id);
+    const client = this.request['client'];
+    const whitelabelId = client?.id;   // o id do domínio
     // Extrair clientId de forma segura
-    const clientId = this.getClientId(product);
+    const clientId = whitelabelId;
 
     await this.productRepository.remove(product);
 
     // Notificar sobre a remoção do produto
-    this.eventsGateway.notifyProductRemoved(id, clientId);
+    this.eventsGateway.notifyProductRemoved(id, clientId , whitelabelId);
   }
 
-  // Helper method to safely get clientId from product
-  private getClientId(product: Product): string | undefined {
-    // Check if the product object has a clientId property
-    if (product && typeof product === 'object' && 'clientId' in product) {
-      const clientId = (product as unknown as Record<string, unknown>).clientId;
-      return typeof clientId === 'string' ? clientId : undefined;
-    }
-    return undefined;
-  }
+
 
   async syncProductsFromSuppliers(): Promise<void> {
     const suppliers = await this.suppliersService.findAll();
@@ -222,30 +227,32 @@ export class ProductsService {
             Object.assign(existingProduct, productData);
             const updatedProduct =
               await this.productRepository.save(existingProduct);
-
+              const client = this.request['client'];
+              const whitelabelId = client?.id;
             // Notificar sobre a atualização do produto
             const productEvent: ProductEvent = {
               id: updatedProduct.id,
               name: updatedProduct.name,
               price: updatedProduct.price,
-              clientId: this.getClientId(updatedProduct),
+              clientId: whitelabelId,
             };
 
-            this.eventsGateway.notifyProductUpdated(productEvent);
+            this.eventsGateway.notifyProductUpdated(productEvent , whitelabelId);
           } else {
             // Criar novo produto
             const newProduct = this.productRepository.create(productData);
             const savedProduct = await this.productRepository.save(newProduct);
-
+            const client = this.request['client'];
+            const whitelabelId = client?.id;
             // Notificar sobre a criação do produto
             const productEvent: ProductEvent = {
               id: savedProduct.id,
               name: savedProduct.name,
               price: savedProduct.price,
-              clientId: this.getClientId(savedProduct),
+              clientId: whitelabelId,
             };
 
-            this.eventsGateway.notifyProductCreated(productEvent);
+            this.eventsGateway.notifyProductCreated(productEvent , whitelabelId);
           }
         }
       } catch (error) {

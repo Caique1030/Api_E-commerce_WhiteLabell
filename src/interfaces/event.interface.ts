@@ -6,11 +6,7 @@ export interface JwtPayload {
   [key: string]: any;
 }
 
-export interface ConnectedClient {
-  socket: any; // Socket do Socket.io
-  userId?: string;
-  clientId?: string;
-}
+
 
 export interface EventData<T> {
   message: string;

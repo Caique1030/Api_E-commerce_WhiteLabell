@@ -9,14 +9,14 @@ import { Client } from './entities/client.entity';
 import { CreateClientDto } from './dto/create-client.dto';
 import { UpdateClientDto } from './dto/update-client.dto';
 import { ClientEvent } from '../interfaces/event.interface';
-import { EventsGateway } from 'src/events/events.gateway';
+// import { EventsGateway } from 'src/events/events.gateway';
 
 @Injectable()
 export class ClientsService {
   constructor(
     @InjectRepository(Client)
     private readonly clientRepository: Repository<Client>,
-    private readonly eventsGateway: EventsGateway, // Injetar EventsGateway
+    // private readonly eventsGateway: EventsGateway, // Injetar EventsGateway
   ) {}
 
   async create(createClientDto: CreateClientDto): Promise<Client> {
@@ -45,10 +45,10 @@ export class ClientsService {
     const newClient = this.clientRepository.create(createClientDto);
     const savedClient = await this.clientRepository.save(newClient);
 
-    // Notificar sobre a criação do cliente
-    this.eventsGateway.notifyClientCreated(
-      savedClient as unknown as ClientEvent,
-    );
+    // // Notificar sobre a criação do cliente
+    // this.eventsGateway.notifyClientCreated(
+    //   savedClient as unknown as ClientEvent,
+    // );
 
     return savedClient;
   }
@@ -116,10 +116,10 @@ export class ClientsService {
     Object.assign(client, updateClientDto);
     const updatedClient = await this.clientRepository.save(client);
 
-    // Notificar sobre a atualização do cliente
-    this.eventsGateway.notifyClientUpdated(
-      updatedClient as unknown as ClientEvent,
-    );
+    // // Notificar sobre a atualização do cliente
+    // this.eventsGateway.notifyClientUpdated(
+    //   updatedClient as unknown as ClientEvent,
+    // );
 
     return updatedClient;
   }
@@ -128,8 +128,8 @@ export class ClientsService {
     const client = await this.findOne(id);
     await this.clientRepository.remove(client);
 
-    // Notificar sobre a remoção do cliente
-    this.eventsGateway.notifyClientRemoved(id);
+    // // Notificar sobre a remoção do cliente
+    // this.eventsGateway.notifyClientRemoved(id);
   }
 
   async createIfNotExists(data: Partial<Client>): Promise<Client> {

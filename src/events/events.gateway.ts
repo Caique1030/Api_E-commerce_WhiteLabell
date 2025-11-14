@@ -8,7 +8,6 @@ import {
 import { Server, Socket } from 'socket.io';
 import { Injectable, Logger } from '@nestjs/common';
 import {
-  ConnectedClient,
   SupplierEvent,
   ProductEvent,
   ClientEvent,
@@ -17,6 +16,7 @@ import {
 import { JwtPayload } from '../interfaces/jwt-payload.interface';
 import { JwtService } from '@nestjs/jwt';
 import { ClientsService } from '../clients/clients.service';
+import { ConnectedClient } from 'src/interfaces/connected-client.interface';
 
 @WebSocketGateway({
   cors: {
@@ -313,119 +313,119 @@ export class EventsGateway
     }
   }
 
-  // === Métodos para Clientes ===
+  // // === Métodos para Clientes ===
 
-  notifyClientCreated(client: ClientEvent, whitelabelId?: string): void {
-    // O whitelabelId aqui é o próprio client.id para clientes
-    const domainId = whitelabelId || client.id;
+  // notifyClientCreated(client: ClientEvent, whitelabelId?: string): void {
+  //   // O whitelabelId aqui é o próprio client.id para clientes
+  //   const domainId = whitelabelId || client.id;
 
-    // CORREÇÃO: Enviar para TODOS os usuários deste domínio
-    this.server.to(`domain:${domainId}`).emit('client:created', {
-      message: 'Nova loja disponível',
-      data: {
-        id: client.id,
-        name: client.name,
-        domain: client.domain,
-        primaryColor: client.primaryColor,
-        secondaryColor: client.secondaryColor,
-      },
-    } as EventData<Partial<ClientEvent>>);
+  //   // CORREÇÃO: Enviar para TODOS os usuários deste domínio
+  //   this.server.to(`domain:${domainId}`).emit('client:created', {
+  //     message: 'Nova loja disponível',
+  //     data: {
+  //       id: client.id,
+  //       name: client.name,
+  //       domain: client.domain,
+  //       primaryColor: client.primaryColor,
+  //       secondaryColor: client.secondaryColor,
+  //     },
+  //   } as EventData<Partial<ClientEvent>>);
 
-    // Envio específico para admins com informações adicionais
-    this.server.to(`domain:${domainId}:admins`).emit('client:created:admin', {
-      message: 'Nova loja criada com detalhes completos',
-      data: client,
-      isAdminEvent: true,
-    });
+  //   // Envio específico para admins com informações adicionais
+  //   this.server.to(`domain:${domainId}:admins`).emit('client:created:admin', {
+  //     message: 'Nova loja criada com detalhes completos',
+  //     data: client,
+  //     isAdminEvent: true,
+  //   });
 
-    // Envio específico para usuários deste cliente
-    this.server
-      .to(`domain:${domainId}:client:${client.id}`)
-      .emit('client:created:member', {
-        message: 'Sua loja foi configurada',
-        data: {
-          name: client.name,
-          domain: client.domain,
-          primaryColor: client.primaryColor,
-          secondaryColor: client.secondaryColor,
-        },
-      });
+  //   // Envio específico para usuários deste cliente
+  //   this.server
+  //     .to(`domain:${domainId}:client:${client.id}`)
+  //     .emit('client:created:member', {
+  //       message: 'Sua loja foi configurada',
+  //       data: {
+  //         name: client.name,
+  //         domain: client.domain,
+  //         primaryColor: client.primaryColor,
+  //         secondaryColor: client.secondaryColor,
+  //       },
+  //     });
 
-    this.logger.debug(
-      `Emitted client:created event to domain ${domainId} - ${client.id}`,
-    );
-  }
+  //   this.logger.debug(
+  //     `Emitted client:created event to domain ${domainId} - ${client.id}`,
+  //   );
+  // }
 
-  notifyClientUpdated(client: ClientEvent, whitelabelId?: string): void {
-    // O whitelabelId aqui é o próprio client.id para clientes
-    const domainId = whitelabelId || client.id;
+  // notifyClientUpdated(client: ClientEvent, whitelabelId?: string): void {
+  //   // O whitelabelId aqui é o próprio client.id para clientes
+  //   const domainId = whitelabelId || client.id;
 
-    // CORREÇÃO: Enviar para TODOS os usuários deste domínio
-    this.server.to(`domain:${domainId}`).emit('client:updated', {
-      message: 'Loja atualizada',
-      data: {
-        id: client.id,
-        name: client.name,
-        domain: client.domain,
-        primaryColor: client.primaryColor,
-        secondaryColor: client.secondaryColor,
-      },
-    } as EventData<Partial<ClientEvent>>);
+  //   // CORREÇÃO: Enviar para TODOS os usuários deste domínio
+  //   this.server.to(`domain:${domainId}`).emit('client:updated', {
+  //     message: 'Loja atualizada',
+  //     data: {
+  //       id: client.id,
+  //       name: client.name,
+  //       domain: client.domain,
+  //       primaryColor: client.primaryColor,
+  //       secondaryColor: client.secondaryColor,
+  //     },
+  //   } as EventData<Partial<ClientEvent>>);
 
-    // Envio específico para admins com informações adicionais
-    this.server.to(`domain:${domainId}:admins`).emit('client:updated:admin', {
-      message: 'Loja atualizada com detalhes completos',
-      data: client,
-      isAdminEvent: true,
-    });
+  //   // Envio específico para admins com informações adicionais
+  //   this.server.to(`domain:${domainId}:admins`).emit('client:updated:admin', {
+  //     message: 'Loja atualizada com detalhes completos',
+  //     data: client,
+  //     isAdminEvent: true,
+  //   });
 
-    // Envio específico para usuários deste cliente
-    this.server
-      .to(`domain:${domainId}:client:${client.id}`)
-      .emit('client:updated:member', {
-        message: 'Configurações da sua loja foram atualizadas',
-        data: {
-          name: client.name,
-          domain: client.domain,
-          primaryColor: client.primaryColor,
-          secondaryColor: client.secondaryColor,
-        },
-      });
+  //   // Envio específico para usuários deste cliente
+  //   this.server
+  //     .to(`domain:${domainId}:client:${client.id}`)
+  //     .emit('client:updated:member', {
+  //       message: 'Configurações da sua loja foram atualizadas',
+  //       data: {
+  //         name: client.name,
+  //         domain: client.domain,
+  //         primaryColor: client.primaryColor,
+  //         secondaryColor: client.secondaryColor,
+  //       },
+  //     });
 
-    this.logger.debug(
-      `Emitted client:updated event to domain ${domainId} - ${client.id}`,
-    );
-  }
+  //   this.logger.debug(
+  //     `Emitted client:updated event to domain ${domainId} - ${client.id}`,
+  //   );
+  // }
 
-  notifyClientRemoved(clientId: string, whitelabelId?: string): void {
-    // O whitelabelId aqui é o próprio clientId para clientes
-    const domainId = whitelabelId || clientId;
+  // notifyClientRemoved(clientId: string, whitelabelId?: string): void {
+  //   // O whitelabelId aqui é o próprio clientId para clientes
+  //   const domainId = whitelabelId || clientId;
 
-    // CORREÇÃO: Enviar para TODOS os usuários deste domínio
-    this.server.to(`domain:${domainId}`).emit('client:removed', {
-      message: 'Loja não está mais disponível',
-      data: { id: clientId },
-    } as EventData<{ id: string }>);
+  //   // CORREÇÃO: Enviar para TODOS os usuários deste domínio
+  //   this.server.to(`domain:${domainId}`).emit('client:removed', {
+  //     message: 'Loja não está mais disponível',
+  //     data: { id: clientId },
+  //   } as EventData<{ id: string }>);
 
-    // Envio específico para admins
-    this.server.to(`domain:${domainId}:admins`).emit('client:removed:admin', {
-      message: 'Loja removida do sistema',
-      data: { id: clientId },
-      isAdminEvent: true,
-    });
+  //   // Envio específico para admins
+  //   this.server.to(`domain:${domainId}:admins`).emit('client:removed:admin', {
+  //     message: 'Loja removida do sistema',
+  //     data: { id: clientId },
+  //     isAdminEvent: true,
+  //   });
 
-    // Envio específico para usuários deste cliente
-    this.server
-      .to(`domain:${domainId}:client:${clientId}`)
-      .emit('client:removed:member', {
-        message: 'Esta loja foi desativada',
-        data: { id: clientId },
-      });
+  //   // Envio específico para usuários deste cliente
+  //   this.server
+  //     .to(`domain:${domainId}:client:${clientId}`)
+  //     .emit('client:removed:member', {
+  //       message: 'Esta loja foi desativada',
+  //       data: { id: clientId },
+  //     });
 
-    this.logger.debug(
-      `Emitted client:removed event to domain ${domainId} - ${clientId}`,
-    );
-  }
+  //   this.logger.debug(
+  //     `Emitted client:removed event to domain ${domainId} - ${clientId}`,
+  //   );
+  // }
 
   // === Métodos para Produtos ===
 

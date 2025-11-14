@@ -5,4 +5,6 @@ export interface ConnectedClient {
   socket: Socket; // Usando o tipo Socket ao invés de any
   userId?: string;
   clientId?: string;
+  domain?: string;
+  whitelabelId?: string;
 }
