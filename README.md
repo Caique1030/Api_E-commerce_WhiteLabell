@@ -741,27 +741,6 @@ src/
 
 ---
 
-## ✅ Critérios do Processo Seletivo Atendidos
-
-### Backend (API NestJS)
-
-- ✅ **Desenvolvido com NestJS** - Framework utilizado
-- ✅ **Funcionalidade de Login** - JWT implementado
-- ✅ **Diferenciação de Clientes** - Middleware por domínio
-- ✅ **Collection e Documentação** - Postman collection disponível
-- ✅ **DER do Banco de Dados** - Diagrama visual + SQL
-
-### Funcionalidades Extras
-
-- ✅ WebSockets para eventos em tempo real
-- ✅ Sistema de logs e auditoria
-- ✅ Filtros avançados de produtos
-- ✅ Validação robusta com DTOs
-- ✅ Tratamento de erros adequado
-- ✅ Código limpo e bem documentado
-
----
-
 ## 🐛 Troubleshooting
 
 ### Erro de conexão com banco de dados
@@ -795,18 +774,9 @@ curl -X POST http://localhost:3000/api/auth/login \
 
 ---
 
-## 📞 Suporte
-
-Para dúvidas ou problemas:
-
-- 📧 Email: pedro.antonio@in8.com.br
-- 📝 Issues: Abra uma issue no repositório
-
----
-
 ## 📄 Licença
 
-Este projeto foi desenvolvido como parte do processo seletivo 2025.
+Este projeto foi desenvolvido como parte do processo seletivo .
 
 ---
 
@@ -814,8 +784,4 @@ Este projeto foi desenvolvido como parte do processo seletivo 2025.
 
 Desenvolvido para o processo seletivo - Caique Junior
 
-**Data de Entrega:** Até 28 de novembro de 2025, 23:59
-
 ---
-
-**🚀 Boa sorte com a avaliação!**
