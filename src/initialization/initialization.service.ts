@@ -18,7 +18,7 @@ export class InitializationService implements OnApplicationBootstrap {
 
   async onApplicationBootstrap() {
     const options = this.getInitializationOptions();
-    
+
     if (!options.enabled) {
       this.logger.log('Autostart disabled');
       return;
@@ -53,19 +53,19 @@ export class InitializationService implements OnApplicationBootstrap {
     const clients = [
       {
         name: 'Localhost Client',
-        domain: 'localhost:3000',
+        domain: 'localhost',
         primaryColor: '#2ecc71',
         secondaryColor: '#27ae60',
       },
       {
         name: 'Devnology',
-        domain: 'devnology.com:3000',
+        domain: 'devnology.com',
         primaryColor: '#2ecc71',
         secondaryColor: '#27ae60',
       },
       {
         name: 'IN8',
-        domain: 'in8.com:3000',
+        domain: 'in8.com',
         primaryColor: '#8e44ad',
         secondaryColor: '#9b59b6',
       },
@@ -100,7 +100,10 @@ export class InitializationService implements OnApplicationBootstrap {
           }
         }
       } catch (error) {
-        this.logger.error(`❌ Erro ao processar cliente "${clientData.name}":`, error);
+        this.logger.error(
+          `❌ Erro ao processar cliente "${clientData.name}":`,
+          error,
+        );
       }
     }
   }
@@ -110,21 +113,23 @@ export class InitializationService implements OnApplicationBootstrap {
       {
         name: 'Fornecedor Brasileiro',
         type: 'brazilian',
-        apiUrl: 'http://616d6bdb6dacbb001794ca17.mockapi.io/devnology/brazilian_provider',
+        apiUrl:
+          'http://616d6bdb6dacbb001794ca17.mockapi.io/devnology/brazilian_provider',
       },
       {
         name: 'Fornecedor Europeu',
         type: 'european',
-        apiUrl: 'http://616d6bdb6dacbb001794ca17.mockapi.io/devnology/european_provider',
+        apiUrl:
+          'http://616d6bdb6dacbb001794ca17.mockapi.io/devnology/european_provider',
       },
     ];
-
-    
 
     for (const supplierData of suppliers) {
       try {
         const existingSuppliers = await this.suppliersService.findAll();
-        const existingSupplier = existingSuppliers.find(s => s.name === supplierData.name);
+        const existingSupplier = existingSuppliers.find(
+          (s) => s.name === supplierData.name,
+        );
 
         if (existingSupplier && !options.force) {
           if (options.verbose) {
@@ -141,18 +146,21 @@ export class InitializationService implements OnApplicationBootstrap {
         } else {
           const supplier = await this.suppliersService.create(supplierData);
           if (options.verbose) {
-            this.logger.log(`Supplier "${supplier.name}" successfully created!`);
+            this.logger.log(
+              `Supplier "${supplier.name}" successfully created!`,
+            );
           }
         }
       } catch (error) {
-        this.logger.error(`❌ Erro ao processar fornecedor "${supplierData.name}":`, error);
+        this.logger.error(
+          `❌ Erro ao processar fornecedor "${supplierData.name}":`,
+          error,
+        );
       }
     }
   }
 
   private async initializeAdmin(options: InitializationOptions) {
-    
-
     try {
       const existingAdmin = await this.usersService
         .findByEmail('admin@example.com')
@@ -167,9 +175,9 @@ export class InitializationService implements OnApplicationBootstrap {
 
       let defaultClient;
       try {
-        defaultClient = await this.clientsService.findByDomain('localhost:3000');
+        defaultClient =
+          await this.clientsService.findByDomain('localhost:3000');
       } catch {
-        
         defaultClient = await this.clientsService.create({
           name: 'Localhost Client',
           domain: 'localhost:3000',
@@ -200,8 +208,6 @@ export class InitializationService implements OnApplicationBootstrap {
           role: 'admin',
           clientId: defaultClient.id,
         });
-
-       
       }
     } catch (error) {
       this.logger.error('❌ Erro ao criar usuário administrador:', error);

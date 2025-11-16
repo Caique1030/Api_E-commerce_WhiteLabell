@@ -64,10 +64,7 @@ export class EventsGateway
         const whitelabelClient = await this.getClientByDomain(domain);
 
         if (!whitelabelClient) {
-          this.handleAuthError(
-            client,
-            `Client not found for domain ${domain}`,
-          );
+          this.handleAuthError(client, `Client not found for domain ${domain}`);
           return;
         }
 
@@ -83,7 +80,6 @@ export class EventsGateway
           domain,
           whitelabelId: whitelabelClient.id,
         });
-
 
         await client.join(`domain:${whitelabelClient.id}`);
 
@@ -130,13 +126,16 @@ export class EventsGateway
     if (origin) {
       try {
         const url = new URL(origin);
-        return `${url.hostname}${url.port ? ':' + url.port : ''}`;
+        // Retorna apenas o hostname, sem a porta
+        return url.hostname;
       } catch (error) {
         this.logger.error(`Erro ao parsear origin: ${error.message}`);
       }
     }
 
-    return (host as string) || 'unknown';
+    // Remove a porta do host também, se existir
+    const hostWithoutPort = (host as string)?.split(':')[0];
+    return hostWithoutPort || 'unknown';
   }
 
   private async getClientByDomain(domain: string): Promise<any> {
@@ -508,7 +507,7 @@ export class EventsGateway
     whitelabelId?: string,
   ): void {
     if (!whitelabelId && clientId) {
-      whitelabelId = clientId; 
+      whitelabelId = clientId;
     }
 
     if (whitelabelId) {

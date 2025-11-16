@@ -19,19 +19,19 @@ export default registerAs('config', () => {
     clients: [
       {
         name: 'Localhost Client',
-        domain: 'localhost:3000',
+        domain: 'localhost',
         primaryColor: '#2ecc71',
         secondaryColor: '#27ae60',
       },
       {
         name: 'Devnology',
-        domain: 'devnology.com:3000',
+        domain: 'devnology.com',
         primaryColor: '#2ecc71',
         secondaryColor: '#27ae60',
       },
       {
         name: 'IN8',
-        domain: 'in8.com:3000',
+        domain: 'in8.com',
         primaryColor: '#8e44ad',
         secondaryColor: '#9b59b6',
       },
