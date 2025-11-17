@@ -14,6 +14,8 @@ import {
 import { EventsGateway } from 'src/events/events.gateway';
 import { REQUEST } from '@nestjs/core';
 import type { Request } from 'express';
+import { Supplier } from 'src/suppliers/entities/supplier.entity';
+import axios from 'axios';
 
 @Injectable({ scope: Scope.REQUEST })
 export class ProductsService {
@@ -139,115 +141,51 @@ export class ProductsService {
     this.eventsGateway.notifyProductRemoved(id, clientId, whitelabelId);
   }
 
-  async syncProductsFromSuppliers(): Promise<void> {
-    const suppliers = await this.suppliersService.findAll();
+ async syncProductsFromSuppliers() {
+  const suppliers = await this.suppliersService.findAll();
 
-    for (const supplier of suppliers) {
-      if (!supplier.isActive) continue;
+  for (const supplier of suppliers) {
+    const products = await this.fetchAllSupplierProducts(supplier);
 
-      try {
-        const products = await this.suppliersService.fetchProductsFromSupplier(
-          supplier.id,
-        );
-
-        for (const externalProduct of products) {
-          if (!externalProduct || typeof externalProduct !== 'object') {
-            continue;
-          }
-
-          const externalProductId = this.getExternalProductId(externalProduct);
-          if (!externalProductId) {
-            continue;
-          }
-
-          const existingProduct = await this.productRepository.findOne({
-            where: {
-              externalId: externalProductId,
-              supplierId: supplier.id,
-            },
-          });
-
-          let productData: Partial<Product>;
-
-          if (supplier.type === 'brazilian') {
-            const brazilianProduct =
-              externalProduct as ExternalProductBrazilian;
-            productData = {
-              name: brazilianProduct.nome || brazilianProduct.name || '',
-              description: brazilianProduct.descricao,
-              price:
-                typeof brazilianProduct.preco === 'string'
-                  ? parseFloat(brazilianProduct.preco)
-                  : typeof brazilianProduct.preco === 'number'
-                    ? brazilianProduct.preco
-                    : 0,
-              image: brazilianProduct.imagem,
-              category: brazilianProduct.categoria,
-              material: brazilianProduct.material,
-              department: brazilianProduct.departamento,
-              externalId: externalProductId,
-              supplierId: supplier.id,
-            };
-          } else {
-            const europeanProduct = externalProduct as ExternalProductEuropean;
-            productData = {
-              name: europeanProduct.name || '',
-              description: europeanProduct.description,
-              price:
-                typeof europeanProduct.price === 'string'
-                  ? parseFloat(europeanProduct.price)
-                  : typeof europeanProduct.price === 'number'
-                    ? europeanProduct.price
-                    : 0,
-              image:
-                europeanProduct.gallery && europeanProduct.gallery.length > 0
-                  ? europeanProduct.gallery[0]
-                  : undefined,
-              gallery: europeanProduct.gallery,
-              hasDiscount: europeanProduct.hasDiscount,
-              discountValue: europeanProduct.discountValue,
-              externalId: externalProductId,
-              supplierId: supplier.id,
-            };
-          }
-
-          if (existingProduct) {
-            Object.assign(existingProduct, productData);
-            const updatedProduct =
-              await this.productRepository.save(existingProduct);
-            const client = this.request['client'];
-            const whitelabelId = client?.id;
-            const productEvent: ProductEvent = {
-              id: updatedProduct.id,
-              name: updatedProduct.name,
-              price: updatedProduct.price,
-              clientId: whitelabelId,
-            };
-
-            this.eventsGateway.notifyProductUpdated(productEvent, whitelabelId);
-          } else {
-            const newProduct = this.productRepository.create(productData);
-            const savedProduct = await this.productRepository.save(newProduct);
-            const client = this.request['client'];
-            const whitelabelId = client?.id;
-            const productEvent: ProductEvent = {
-              id: savedProduct.id,
-              name: savedProduct.name,
-              price: savedProduct.price,
-              clientId: whitelabelId,
-            };
-
-            this.eventsGateway.notifyProductCreated(productEvent, whitelabelId);
-          }
-        }
-      } catch (error) {
-        console.error(
-          `Error syncing products from supplier ${supplier.name}:`,
-          error,
-        );
-      }
+    for (const p of products) {
+      await this.createOrUpdateExternalProduct(p, supplier.id);
     }
   }
+
+  return { message: 'Products synchronized successfully' };
+}
+
+private async createOrUpdateExternalProduct(data: any, supplierId: string) {
+  const existing = await this.productRepository.findOne({
+    where: { externalId: data.id, supplierId },
+  });
+
+  if (existing) {
+    return await this.productRepository.save({
+      ...existing,
+      name: data.name,
+      description: data.description,
+      price: data.price,
+      image: data.image,
+      gallery: data.gallery,
+      hasDiscount: data.hasDiscount,
+      discountValue: data.discountValue,
+      updatedAt: new Date(),
+    });
+  }
+
+  return await this.productRepository.save({
+    name: data.name,
+    description: data.description,
+    price: data.price,
+    image: data.image,
+    gallery: data.gallery,
+    externalId: data.id,
+    supplierId,
+  });
+}
+
+
 
   private getExternalProductId(externalProduct: unknown): string | undefined {
     if (!externalProduct || typeof externalProduct !== 'object') {
@@ -267,4 +205,39 @@ export class ProductsService {
 
     return undefined;
   }
+
+private async fetchAllSupplierProducts(
+  supplier: Supplier
+): Promise<(ExternalProductBrazilian | ExternalProductEuropean)[]> {
+  const MAX_PAGES = 20; // segurança para evitar loops infinitos
+  let page = 1;
+  const limit = 50;
+
+  let allProducts: (ExternalProductBrazilian | ExternalProductEuropean)[] = [];
+
+  while (page <= MAX_PAGES) {
+    const url = `${supplier.apiUrl}?page=${page}&limit=${limit}`;
+
+    const response = await axios.get(url, { timeout: 8000 });
+    const products = response.data;
+
+    // Se a API não tem paginação, e retorna sempre o mesmo array
+    if (!Array.isArray(products)) break;
+
+    allProducts.push(...products);
+
+    // API realmente tem paginação → parar quando acabar
+    if (products.length < limit) break;
+
+    // API NÃO tem paginação → parar para evitar loop
+    if (products.length === allProducts.length && page > 1) break;
+
+    page++;
+  }
+
+  return allProducts;
+}
+
+
+
 }

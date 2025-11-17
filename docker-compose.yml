@@ -1,0 +1,41 @@
+version: "3.9"
+
+services:
+  backend:
+    build: .
+    container_name: backend_ecommerce
+    ports:
+      - "3000:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      DATABASE_HOST: db
+    volumes:
+      - .:/usr/src/app
+      - /usr/src/app/node_modules
+    command: ["npm", "run", "start:prod"]
+
+  db:
+    image: postgres:15
+    container_name: postgres_ecommerce
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: root
+      POSTGRES_DB: e_commerce_whitelabel
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  pgdata:

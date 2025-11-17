@@ -9,7 +9,6 @@ import { ClientsModule } from './clients/clients.module';
 import { ProductsModule } from './products/products.module';
 import { SuppliersModule } from './suppliers/suppliers.module';
 import { EventsModule } from './events/events.module';
-import { ClientMiddleware } from './clients/middleware/client.middleware';
 import { InitializationModule } from './initialization/initialization.module';
 import config from './config/config';
 
@@ -32,9 +31,5 @@ import config from './config/config';
   providers: [AppService],
 })
 export class AppModule {
-  configure(consumer: MiddlewareConsumer) {
-    consumer
-      .apply(ClientMiddleware)
-      .forRoutes({ path: '*', method: RequestMethod.ALL });
-  }
+ 
 }
