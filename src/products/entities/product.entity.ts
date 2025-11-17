@@ -14,49 +14,65 @@ export class Product {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', length: 255, nullable: false })
   name: string;
 
-  @Column({ nullable: true })
+  @Column({ type: 'text', nullable: true })
   description: string;
 
-  @Column({ type: 'decimal', precision: 10, scale: 2 })
+  @Column({ type: 'numeric', precision: 10, scale: 2 })
   price: number;
 
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', length: 500, nullable: true })
   image: string;
 
-  @Column({ type: 'simple-array', nullable: true })
+  // ✅ CORRIGIDO: gallery deve ser array de texto no PostgreSQL
+  @Column({ type: 'text', array: true, nullable: true })
   gallery: string[];
 
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', length: 255, nullable: true })
   category: string;
 
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', length: 255, nullable: true })
   material: string;
 
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', length: 255, nullable: true })
   department: string;
 
-  @Column({ nullable: true })
+  // ✅ CORRIGIDO: Adicionar mapeamento de coluna
+  @Column({
+    name: 'discount_value',
+    type: 'varchar',
+    length: 50,
+    nullable: true,
+  })
   discountValue: string;
 
-  @Column({ default: false })
+  // ✅ CORRIGIDO: Adicionar mapeamento de coluna
+  @Column({ name: 'has_discount', type: 'boolean', default: false })
   hasDiscount: boolean;
 
-  @Column({ name: 'external_id', nullable: true })
+  // ✅ CORRIGIDO: Adicionar tipo JSONB
+  @Column({ type: 'jsonb', nullable: true })
+  details: any;
+
+  @Column({ name: 'external_id', type: 'varchar', length: 255, nullable: true })
   externalId: string;
 
-  @Column({ name: 'supplier_id', nullable: true })
+  @Column({ name: 'supplier_id', type: 'uuid', nullable: true })
   supplierId: string;
 
-  @ManyToOne(() => Supplier)
+  @ManyToOne(() => Supplier, { nullable: true })
   @JoinColumn({ name: 'supplier_id' })
   supplier: Supplier;
 
-  @CreateDateColumn({ name: 'created_at' })
+  // ✅ ADICIONAR: Coluna client_id que existe no banco
+  @Column({ name: 'client_id', type: 'uuid', nullable: true })
+  clientId: string;
+
+  @CreateDateColumn({ name: 'created_at', type: 'timestamp' })
   createdAt: Date;
 
-  @UpdateDateColumn({ name: 'updated_at' })
+  @UpdateDateColumn({ name: 'updated_at', type: 'timestamp' })
   updatedAt: Date;
 }

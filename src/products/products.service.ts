@@ -6,11 +6,7 @@ import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { SuppliersService } from '../suppliers/suppliers.service';
 import { FilterProductsDto } from './dto/filter-products.dto';
-import {
-  ProductEvent,
-  ExternalProductBrazilian,
-  ExternalProductEuropean,
-} from '../interfaces';
+import { ProductEvent } from '../interfaces';
 import { EventsGateway } from 'src/events/events.gateway';
 import { REQUEST } from '@nestjs/core';
 import type { Request } from 'express';
@@ -35,7 +31,6 @@ export class ProductsService {
     const savedProduct = await this.productRepository.save(newProduct);
     const client = this.request['client'];
     const whitelabelId = client?.id;
-    const domain = client?.domain;
 
     const productEvent: ProductEvent = {
       id: savedProduct.id,
@@ -116,7 +111,6 @@ export class ProductsService {
     const updatedProduct = await this.productRepository.save(product);
     const client = this.request['client'];
     const whitelabelId = client?.id;
-    const domain = client?.domain;
 
     const productEvent: ProductEvent = {
       id: updatedProduct.id,
@@ -141,103 +135,246 @@ export class ProductsService {
     this.eventsGateway.notifyProductRemoved(id, clientId, whitelabelId);
   }
 
- async syncProductsFromSuppliers() {
-  const suppliers = await this.suppliersService.findAll();
+  /// ...existing code...
 
-  for (const supplier of suppliers) {
-    const products = await this.fetchAllSupplierProducts(supplier);
+  /**
+   * Sincroniza produtos de todos os fornecedores
+   * Normaliza os dados de acordo com o tipo de fornecedor (brazilian/european)
+   */
+  async syncProductsFromSuppliers() {
+    const suppliers = await this.suppliersService.findAll();
 
-    for (const p of products) {
-      await this.createOrUpdateExternalProduct(p, supplier.id);
+    let totalSynced = 0;
+    const results: Array<{
+      supplier: string;
+      type?: string;
+      synced: number;
+      errors?: number;
+      total?: number;
+      error?: string;
+      status: 'success' | 'error';
+    }> = [];
+
+    for (const supplier of suppliers) {
+      try {
+        console.log(
+          `🔄 Sincronizando fornecedor: ${supplier.name} (${supplier.type})`,
+        );
+
+        const products = await this.fetchAllSupplierProducts(supplier);
+
+        console.log(`📦 ${products.length} produtos encontrados`);
+
+        let syncedCount = 0;
+        let errorCount = 0;
+
+        for (const product of products) {
+          try {
+            await this.createOrUpdateExternalProduct(product, supplier.id);
+            syncedCount++;
+          } catch (error) {
+            errorCount++;
+            console.error(
+              `❌ Erro ao salvar produto ${product.id}:`,
+              error.message,
+            );
+          }
+        }
+
+        totalSynced += syncedCount;
+        results.push({
+          supplier: supplier.name,
+          type: supplier.type,
+          synced: syncedCount,
+          errors: errorCount,
+          total: products.length,
+          status: 'success',
+        });
+
+        console.log(
+          `✅ ${supplier.name}: ${syncedCount} produtos sincronizados (${errorCount} erros)`,
+        );
+      } catch (error) {
+        console.error(
+          `❌ Erro ao sincronizar ${supplier.name}:`,
+          error.message,
+        );
+        results.push({
+          supplier: supplier.name,
+          synced: 0,
+          error: error.message,
+          status: 'error',
+        });
+      }
+    }
+
+    return {
+      message: 'Products synchronized successfully',
+      totalSynced,
+      details: results,
+    };
+  }
+
+  // ...existing code...
+
+  /**
+   * Busca todos os produtos de um fornecedor
+   * MockAPI não suporta paginação real - retorna tudo de uma vez
+   */
+  private async fetchAllSupplierProducts(supplier: Supplier): Promise<any[]> {
+    try {
+      const response = await axios.get(supplier.apiUrl, {
+        timeout: 15000,
+        validateStatus: (status) => status < 500,
+      });
+
+      if (!response.data || !Array.isArray(response.data)) {
+        console.warn(
+          `⚠️ Supplier ${supplier.name} returned invalid data format`,
+        );
+        return [];
+      }
+
+      // Normalizar produtos baseado no tipo de fornecedor
+      return this.normalizeProducts(response.data, supplier.type);
+    } catch (error) {
+      console.error(
+        `❌ Error fetching products from ${supplier.name}:`,
+        error.message,
+      );
+      return [];
     }
   }
 
-  return { message: 'Products synchronized successfully' };
-}
+  /**
+   * Normaliza a estrutura dos produtos de acordo com o fornecedor
+   * Brazilian: { nome, descricao, imagem, preco, categoria, material, departamento }
+   * European: { name, description, gallery, price, hasDiscount, discountValue, details }
+   */
+  private normalizeProducts(products: any[], supplierType: string): any[] {
+    if (!Array.isArray(products)) {
+      console.warn('⚠️ Products data is not an array');
+      return [];
+    }
 
-private async createOrUpdateExternalProduct(data: any, supplierId: string) {
-  const existing = await this.productRepository.findOne({
-    where: { externalId: data.id, supplierId },
-  });
+    return products
+      .filter((product) => this.isValidProduct(product, supplierType))
+      .map((product) => this.normalizeProduct(product, supplierType));
+  }
 
-  if (existing) {
-    return await this.productRepository.save({
-      ...existing,
+  /**
+   * Valida se o produto tem os campos mínimos necessários
+   */
+  private isValidProduct(product: any, supplierType: string): boolean {
+    if (!product || typeof product !== 'object') {
+      return false;
+    }
+
+    // Verificar se não é um objeto aninhado malformado
+    if (typeof product.nome === 'object' || typeof product.name === 'object') {
+      return false;
+    }
+
+    // Verificar campos obrigatórios por tipo
+    if (supplierType === 'brazilian') {
+      return !!(product.id && product.nome && product.preco);
+    } else {
+      return !!(product.id && product.name && product.price);
+    }
+  }
+
+  /**
+   * Normaliza um produto individual
+   */
+  private normalizeProduct(product: any, supplierType: string): any {
+    if (supplierType === 'brazilian') {
+      return {
+        id: String(product.id),
+        name: product.nome || product.name || 'Produto sem nome',
+        description: product.descricao || '',
+        price: this.parsePrice(product.preco),
+        image: product.imagem || '',
+        gallery: Array.isArray(product.gallery) ? product.gallery : [],
+        category: product.categoria || '',
+        material: product.material || '',
+        department: product.departamento || '',
+        hasDiscount: false,
+        discountValue: '0',
+      };
+    } else {
+      // European provider
+      return {
+        id: String(product.id),
+        name: product.name || 'Produto sem nome',
+        description: product.description || '',
+        price: this.parsePrice(product.price),
+        image:
+          Array.isArray(product.gallery) && product.gallery.length > 0
+            ? product.gallery[0]
+            : '',
+        gallery: Array.isArray(product.gallery) ? product.gallery : [],
+        category: product.details?.adjective || '',
+        material: product.details?.material || '',
+        department: '',
+        hasDiscount: product.hasDiscount || false,
+        discountValue: product.discountValue || '0',
+      };
+    }
+  }
+
+  /**
+   * Converte preço para número, tratando diferentes formatos
+   */
+  private parsePrice(price: any): number {
+    if (typeof price === 'number') {
+      return price;
+    }
+
+    if (typeof price === 'string') {
+      // Remove caracteres não numéricos exceto ponto e vírgula
+      const cleaned = price.replace(/[^\d.,]/g, '');
+      // Substitui vírgula por ponto
+      const normalized = cleaned.replace(',', '.');
+      const parsed = parseFloat(normalized);
+      return isNaN(parsed) ? 0 : parsed;
+    }
+
+    return 0;
+  }
+
+  /**
+   * Cria ou atualiza um produto externo no banco
+   */
+  private async createOrUpdateExternalProduct(data: any, supplierId: string) {
+    const existing = await this.productRepository.findOne({
+      where: { externalId: data.id, supplierId },
+    });
+
+    const productData = {
       name: data.name,
       description: data.description,
       price: data.price,
       image: data.image,
       gallery: data.gallery,
+      category: data.category,
+      material: data.material,
+      department: data.department,
       hasDiscount: data.hasDiscount,
       discountValue: data.discountValue,
-      updatedAt: new Date(),
-    });
-  }
+      externalId: data.id,
+      supplierId: supplierId,
+    };
 
-  return await this.productRepository.save({
-    name: data.name,
-    description: data.description,
-    price: data.price,
-    image: data.image,
-    gallery: data.gallery,
-    externalId: data.id,
-    supplierId,
-  });
-}
-
-
-
-  private getExternalProductId(externalProduct: unknown): string | undefined {
-    if (!externalProduct || typeof externalProduct !== 'object') {
-      return undefined;
+    if (existing) {
+      // Atualizar produto existente
+      return await this.productRepository.save({
+        ...existing,
+        ...productData,
+        updatedAt: new Date(),
+      });
+    } else {
+      // Criar novo produto
+      return await this.productRepository.save(productData);
     }
-
-    const product = externalProduct as Record<string, unknown>;
-    const id = product.id;
-
-    if (id === undefined || id === null) {
-      return undefined;
-    }
-
-    if (typeof id === 'string' || typeof id === 'number') {
-      return String(id);
-    }
-
-    return undefined;
   }
-
-private async fetchAllSupplierProducts(
-  supplier: Supplier
-): Promise<(ExternalProductBrazilian | ExternalProductEuropean)[]> {
-  const MAX_PAGES = 20; // segurança para evitar loops infinitos
-  let page = 1;
-  const limit = 50;
-
-  let allProducts: (ExternalProductBrazilian | ExternalProductEuropean)[] = [];
-
-  while (page <= MAX_PAGES) {
-    const url = `${supplier.apiUrl}?page=${page}&limit=${limit}`;
-
-    const response = await axios.get(url, { timeout: 8000 });
-    const products = response.data;
-
-    // Se a API não tem paginação, e retorna sempre o mesmo array
-    if (!Array.isArray(products)) break;
-
-    allProducts.push(...products);
-
-    // API realmente tem paginação → parar quando acabar
-    if (products.length < limit) break;
-
-    // API NÃO tem paginação → parar para evitar loop
-    if (products.length === allProducts.length && page > 1) break;
-
-    page++;
-  }
-
-  return allProducts;
-}
-
-
-
 }
