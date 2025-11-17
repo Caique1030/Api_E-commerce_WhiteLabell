@@ -7,13 +7,13 @@ export class User {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ unique: true , nullable: true })
-  email: string;
+@Column({ unique: true, nullable: false })
+email: string;
 
-  @Column({ nullable: true })
-  name: string;
+@Column({ nullable: false })
+name: string;
 
-  @Column({ nullable: true })
+  @Column({ nullable: false })
   @Exclude()
   password: string;
 
@@ -26,9 +26,8 @@ export class User {
   @ManyToOne(() => Client, (client) => client.users, { eager: true })
   @JoinColumn({ name: 'client_id' })
   client: Client;
-
-  @Column({ name: 'client_id', nullable: false })
-  clientId: string;
+@Column({ name: 'client_id', nullable: true })
+clientId: string;
 
 
   @CreateDateColumn({ name: 'created_at' })

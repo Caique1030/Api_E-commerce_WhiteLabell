@@ -1,7 +1,12 @@
-
+-- ===================================================
+-- EXTENSÃO PARA UUID
+-- ===================================================
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
--- Função genérica para atualizar updated_at antes de UPDATE
+
+-- ===================================================
+-- FUNÇÃO PARA ATUALIZAR updated_at AUTOMATICAMENTE
+-- ===================================================
 CREATE OR REPLACE FUNCTION set_updated_at()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -11,10 +16,13 @@ END;
 $$ LANGUAGE plpgsql;
 
 
+
 -- ===================================================
 -- TABELA: clients
 -- ===================================================
-CREATE TABLE IF NOT EXISTS clients (
+DROP TABLE IF EXISTS clients CASCADE;
+
+CREATE TABLE clients (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     name VARCHAR(255) UNIQUE NOT NULL,
     domain VARCHAR(255) UNIQUE NOT NULL,
@@ -26,37 +34,41 @@ CREATE TABLE IF NOT EXISTS clients (
     updated_at TIMESTAMP WITHOUT TIME ZONE DEFAULT NOW()
 );
 
-CREATE INDEX IF NOT EXISTS idx_clients_domain ON clients(domain);
+CREATE INDEX idx_clients_domain ON clients(domain);
 
-DROP TRIGGER IF EXISTS trg_clients_set_updated_at ON clients;
 CREATE TRIGGER trg_clients_set_updated_at
 BEFORE UPDATE ON clients
 FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
 
+
 -- ===================================================
 -- TABELA: suppliers
 -- ===================================================
-CREATE TABLE IF NOT EXISTS suppliers (
+DROP TABLE IF EXISTS suppliers CASCADE;
+
+CREATE TABLE suppliers (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     name VARCHAR(255) UNIQUE NOT NULL,
     type VARCHAR(100),
-    api_url VARCHAR(500), -- opcional (nullable)
+    api_url VARCHAR(500),
     is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITHOUT TIME ZONE DEFAULT NOW()
 );
 
-DROP TRIGGER IF EXISTS trg_suppliers_set_updated_at ON suppliers;
 CREATE TRIGGER trg_suppliers_set_updated_at
 BEFORE UPDATE ON suppliers
 FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
 
+
 -- ===================================================
 -- TABELA: products
 -- ===================================================
-CREATE TABLE IF NOT EXISTS products (
+DROP TABLE IF EXISTS products CASCADE;
+
+CREATE TABLE products (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     name VARCHAR(255) NOT NULL,
     description TEXT,
@@ -76,16 +88,18 @@ CREATE TABLE IF NOT EXISTS products (
     updated_at TIMESTAMP WITHOUT TIME ZONE DEFAULT NOW()
 );
 
-DROP TRIGGER IF EXISTS trg_products_set_updated_at ON products;
 CREATE TRIGGER trg_products_set_updated_at
 BEFORE UPDATE ON products
 FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
 
+
 -- ===================================================
 -- TABELA: users
 -- ===================================================
-CREATE TABLE IF NOT EXISTS users (
+DROP TABLE IF EXISTS users CASCADE;
+
+CREATE TABLE users (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     email VARCHAR(255) UNIQUE NOT NULL,
     name VARCHAR(255) NOT NULL,
@@ -97,16 +111,18 @@ CREATE TABLE IF NOT EXISTS users (
     updated_at TIMESTAMP WITHOUT TIME ZONE DEFAULT NOW()
 );
 
-DROP TRIGGER IF EXISTS trg_users_set_updated_at ON users;
 CREATE TRIGGER trg_users_set_updated_at
 BEFORE UPDATE ON users
 FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
 
+
 -- ===================================================
 -- TABELA: orders
 -- ===================================================
-CREATE TABLE IF NOT EXISTS orders (
+DROP TABLE IF EXISTS orders CASCADE;
+
+CREATE TABLE orders (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     client_id UUID REFERENCES clients(id) ON DELETE SET NULL,
     user_id UUID REFERENCES users(id) ON DELETE SET NULL,
@@ -117,16 +133,18 @@ CREATE TABLE IF NOT EXISTS orders (
     updated_at TIMESTAMP WITHOUT TIME ZONE DEFAULT NOW()
 );
 
-DROP TRIGGER IF EXISTS trg_orders_set_updated_at ON orders;
 CREATE TRIGGER trg_orders_set_updated_at
 BEFORE UPDATE ON orders
 FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
 
+
 -- ===================================================
 -- TABELA: order_items
 -- ===================================================
-CREATE TABLE IF NOT EXISTS order_items (
+DROP TABLE IF EXISTS order_items CASCADE;
+
+CREATE TABLE order_items (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     order_id UUID REFERENCES orders(id) ON DELETE CASCADE,
     product_id UUID REFERENCES products(id) ON DELETE SET NULL,
@@ -137,14 +155,16 @@ CREATE TABLE IF NOT EXISTS order_items (
     created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT NOW()
 );
 
--- índice para consultas frequentes por order_id
-CREATE INDEX IF NOT EXISTS idx_order_items_order_id ON order_items(order_id);
+CREATE INDEX idx_order_items_order_id ON order_items(order_id);
+
 
 
 -- ===================================================
 -- TABELA: activity_logs
 -- ===================================================
-CREATE TABLE IF NOT EXISTS activity_logs (
+DROP TABLE IF EXISTS activity_logs CASCADE;
+
+CREATE TABLE activity_logs (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id UUID REFERENCES users(id) ON DELETE SET NULL,
     action VARCHAR(255),
@@ -152,4 +172,5 @@ CREATE TABLE IF NOT EXISTS activity_logs (
     created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT NOW()
 );
 
-CREATE INDEX IF NOT EXISTS idx_activity_logs_user_id ON activity_logs(user_id);
+CREATE INDEX idx_activity_logs_user_id ON activity_logs(user_id);
+

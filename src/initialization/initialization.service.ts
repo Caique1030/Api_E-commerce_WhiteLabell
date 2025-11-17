@@ -176,11 +176,11 @@ export class InitializationService implements OnApplicationBootstrap {
       let defaultClient;
       try {
         defaultClient =
-          await this.clientsService.findByDomain('localhost:3000');
+          await this.clientsService.findByDomain('localhost');
       } catch {
         defaultClient = await this.clientsService.create({
           name: 'Localhost Client',
-          domain: 'localhost:3000',
+          domain: 'localhost',
           primaryColor: '#2ecc71',
           secondaryColor: '#27ae60',
         });

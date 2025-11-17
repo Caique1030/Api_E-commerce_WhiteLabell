@@ -13,8 +13,8 @@ export class Supplier {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ unique: true  , nullable: true})
-  name: string;
+@Column({ unique: true, nullable: false })
+name: string;
 
   @Column({  nullable: true })
   type: string; 

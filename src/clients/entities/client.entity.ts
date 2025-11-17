@@ -12,13 +12,12 @@ import { User } from '../../users/entities/user.entity';
 export class Client {
   @PrimaryGeneratedColumn('uuid')
   id: string;
-
-  @Column({ unique: true ,  nullable: true })
-  name: string;
+@Column({ unique: true, nullable: false })
+name: string;
   
 
-  @Column({ unique: true , nullable: true})
-  domain: string;
+@Column({ unique: true, nullable: false })
+domain: string;
 
   @Column({ nullable: true })
   logo: string;
