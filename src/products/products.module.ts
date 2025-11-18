@@ -10,7 +10,6 @@ import { EventsModule } from '../events/events.module';
   imports: [
     TypeOrmModule.forFeature([Product]),
     SuppliersModule,
-    EventsModule,
   ],
   controllers: [ProductsController],
   providers: [ProductsService],

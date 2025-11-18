@@ -2,12 +2,8 @@ import { Inject, Injectable, NotFoundException, Scope } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Like, FindManyOptions } from 'typeorm';
 import { Product } from './entities/product.entity';
-import { CreateProductDto } from './dto/create-product.dto';
-import { UpdateProductDto } from './dto/update-product.dto';
 import { SuppliersService } from '../suppliers/suppliers.service';
 import { FilterProductsDto } from './dto/filter-products.dto';
-import { ProductEvent } from '../interfaces';
-import { EventsGateway } from 'src/events/events.gateway';
 import { REQUEST } from '@nestjs/core';
 import type { Request } from 'express';
 import { Supplier } from 'src/suppliers/entities/supplier.entity';
@@ -23,26 +19,8 @@ export class ProductsService {
     private readonly request: Request,
 
     private readonly suppliersService: SuppliersService,
-    private readonly eventsGateway: EventsGateway,
   ) {}
 
-  async create(createProductDto: CreateProductDto): Promise<Product> {
-    const newProduct = this.productRepository.create(createProductDto);
-    const savedProduct = await this.productRepository.save(newProduct);
-    const client = this.request['client'];
-    const whitelabelId = client?.id;
-
-    const productEvent: ProductEvent = {
-      id: savedProduct.id,
-      name: savedProduct.name,
-      price: savedProduct.price,
-      clientId: whitelabelId,
-    };
-
-    this.eventsGateway.notifyProductCreated(productEvent, whitelabelId);
-
-    return savedProduct;
-  }
 
   async findAll(
     filters?: FilterProductsDto,
@@ -102,38 +80,9 @@ export class ProductsService {
     return product;
   }
 
-  async update(
-    id: string,
-    updateProductDto: UpdateProductDto,
-  ): Promise<Product> {
-    const product = await this.findOne(id);
-    Object.assign(product, updateProductDto);
-    const updatedProduct = await this.productRepository.save(product);
-    const client = this.request['client'];
-    const whitelabelId = client?.id;
 
-    const productEvent: ProductEvent = {
-      id: updatedProduct.id,
-      name: updatedProduct.name,
-      price: updatedProduct.price,
-      clientId: whitelabelId,
-    };
 
-    this.eventsGateway.notifyProductUpdated(productEvent, whitelabelId);
 
-    return updatedProduct;
-  }
-
-  async remove(id: string): Promise<void> {
-    const product = await this.findOne(id);
-    const client = this.request['client'];
-    const whitelabelId = client?.id;
-    const clientId = whitelabelId;
-
-    await this.productRepository.remove(product);
-
-    this.eventsGateway.notifyProductRemoved(id, clientId, whitelabelId);
-  }
 
   /// ...existing code...
 

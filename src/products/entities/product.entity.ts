@@ -26,7 +26,6 @@ export class Product {
   @Column({ type: 'varchar', length: 500, nullable: true })
   image: string;
 
-  // ✅ CORRIGIDO: gallery deve ser array de texto no PostgreSQL
   @Column({ type: 'text', array: true, nullable: true })
   gallery: string[];
 
@@ -39,7 +38,6 @@ export class Product {
   @Column({ type: 'varchar', length: 255, nullable: true })
   department: string;
 
-  // ✅ CORRIGIDO: Adicionar mapeamento de coluna
   @Column({
     name: 'discount_value',
     type: 'varchar',
@@ -48,11 +46,9 @@ export class Product {
   })
   discountValue: string;
 
-  // ✅ CORRIGIDO: Adicionar mapeamento de coluna
   @Column({ name: 'has_discount', type: 'boolean', default: false })
   hasDiscount: boolean;
 
-  // ✅ CORRIGIDO: Adicionar tipo JSONB
   @Column({ type: 'jsonb', nullable: true })
   details: any;
 
@@ -66,7 +62,6 @@ export class Product {
   @JoinColumn({ name: 'supplier_id' })
   supplier: Supplier;
 
-  // ✅ ADICIONAR: Coluna client_id que existe no banco
   @Column({ name: 'client_id', type: 'uuid', nullable: true })
   clientId: string;
 
