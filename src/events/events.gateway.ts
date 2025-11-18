@@ -7,12 +7,6 @@ import {
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { Injectable, Logger } from '@nestjs/common';
-import {
-  SupplierEvent,
-  ProductEvent,
-  ClientEvent,
-  EventData,
-} from '../interfaces';
 import { JwtService } from '@nestjs/jwt';
 import { ConnectedClient } from 'src/interfaces/connected-client.interface';
 import { ClientsService } from 'src/clients/clients.service';
@@ -191,7 +185,91 @@ export class EventsGateway
     this.logger.log(`Client disconnected: ${client.id}`);
   }
 
+  // ==================== EVENTOS DE USUÁRIOS ====================
 
+  /**
+   * Notifica sobre a atualização de um usuário
+   * Envia para o domínio específico e para o próprio usuário
+   */
+  notifyUserUpdated(user: any, clientId?: string) {
+    const event = 'user:updated';
+    const sanitizedUser = this.sanitizeUser(user);
 
-  
+    if (clientId) {
+      // Emite para todos os usuários do domínio
+      this.server.to(`domain:${clientId}`).emit(event, sanitizedUser);
+
+      // Emite especificamente para o usuário que foi atualizado
+      if (user.id) {
+        this.server
+          .to(`domain:${clientId}:user:${user.id}`)
+          .emit(event, sanitizedUser);
+      }
+
+      this.logger.log(`Emitted ${event} to domain:${clientId}`);
+    } else {
+      this.server.emit(event, sanitizedUser);
+      this.logger.log(`Emitted ${event} to all clients`);
+    }
+  }
+
+  private sanitizeUser(user: any): any {
+    const { password, ...sanitizedUser } = user;
+    return sanitizedUser;
+  }
+
+  /**
+   * Notifica sobre a remoção de um usuário
+   * Envia para o domínio específico
+   */
+  notifyUserRemoved(userId: string, clientId?: string) {
+    const event = 'user:removed';
+    const payload = { id: userId };
+
+    if (clientId) {
+      this.server.to(`domain:${clientId}`).emit(event, payload);
+      this.logger.log(`Emitted ${event} to domain:${clientId}`);
+    } else {
+      this.server.emit(event, payload);
+      this.logger.log(`Emitted ${event} to all clients`);
+    }
+  }
+
+  /**
+   * Obtém todos os clientes conectados de um domínio específico
+   * Útil para debug e monitoramento
+   */
+  getConnectedClientsByDomain(domainId: string): ConnectedClient[] {
+    const connectedClients: ConnectedClient[] = [];
+
+    for (const [socketId, client] of this.clients.entries()) {
+      if (client.whitelabelId === domainId) {
+        connectedClients.push(client);
+      }
+    }
+
+    return connectedClients;
+  }
+
+  /**
+   * Obtém o total de clientes conectados
+   */
+  getConnectedClientsCount(): number {
+    return this.clients.size;
+  }
+
+  /**
+   * Verifica se um usuário específico está conectado
+   */
+  isUserConnected(userId: string, clientId?: string): boolean {
+    for (const [socketId, client] of this.clients.entries()) {
+      if (client.userId === userId) {
+        if (clientId) {
+          return client.whitelabelId === clientId;
+        }
+        return true;
+      }
+    }
+    return false;
+  }
 }
