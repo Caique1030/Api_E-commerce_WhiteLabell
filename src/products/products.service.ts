@@ -1,4 +1,10 @@
-import { Inject, Injectable, NotFoundException, Scope } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  NotFoundException,
+  Scope,
+  Logger,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Like, FindManyOptions } from 'typeorm';
 import { Product } from './entities/product.entity';
@@ -11,6 +17,8 @@ import axios from 'axios';
 
 @Injectable({ scope: Scope.REQUEST })
 export class ProductsService {
+  private readonly logger = new Logger(ProductsService.name);
+
   constructor(
     @InjectRepository(Product)
     private readonly productRepository: Repository<Product>,
@@ -27,7 +35,8 @@ export class ProductsService {
   ): Promise<{ products: Product[]; total: number }> {
     const where: Record<string, unknown> = {};
     const options: FindManyOptions<Product> = {
-      take: filters?.limit || 10,
+      // ✅ Se limit for -1, busca todos
+      take: filters?.limit === -1 ? undefined : filters?.limit || 150,
       skip: filters?.offset || 0,
       order: { createdAt: 'DESC' },
     };
@@ -84,13 +93,12 @@ export class ProductsService {
 
 
 
-  /// ...existing code...
-
   /**
    * Sincroniza produtos de todos os fornecedores
    * Normaliza os dados de acordo com o tipo de fornecedor (brazilian/european)
    */
   async syncProductsFromSuppliers() {
+    this.logger.log('🔄 Iniciando sincronização de produtos...');
     const suppliers = await this.suppliersService.findAll();
 
     let totalSynced = 0;
@@ -106,13 +114,15 @@ export class ProductsService {
 
     for (const supplier of suppliers) {
       try {
-        console.log(
-          `🔄 Sincronizando fornecedor: ${supplier.name} (${supplier.type})`,
+        this.logger.log(
+          `📦 Sincronizando fornecedor: ${supplier.name} (${supplier.type})`,
         );
 
         const products = await this.fetchAllSupplierProducts(supplier);
 
-        console.log(`📦 ${products.length} produtos encontrados`);
+        this.logger.log(
+          `📊 ${products.length} produtos encontrados e validados`,
+        );
 
         let syncedCount = 0;
         let errorCount = 0;
@@ -123,7 +133,7 @@ export class ProductsService {
             syncedCount++;
           } catch (error) {
             errorCount++;
-            console.error(
+            this.logger.error(
               `❌ Erro ao salvar produto ${product.id}:`,
               error.message,
             );
@@ -140,11 +150,11 @@ export class ProductsService {
           status: 'success',
         });
 
-        console.log(
+        this.logger.log(
           `✅ ${supplier.name}: ${syncedCount} produtos sincronizados (${errorCount} erros)`,
         );
       } catch (error) {
-        console.error(
+        this.logger.error(
           `❌ Erro ao sincronizar ${supplier.name}:`,
           error.message,
         );
@@ -157,6 +167,10 @@ export class ProductsService {
       }
     }
 
+    this.logger.log(
+      `✅ Sincronização concluída: ${totalSynced} produtos totais`,
+    );
+
     return {
       message: 'Products synchronized successfully',
       totalSynced,
@@ -164,11 +178,9 @@ export class ProductsService {
     };
   }
 
-  // ...existing code...
-
   /**
    * Busca todos os produtos de um fornecedor
-   * MockAPI não suporta paginação real - retorna tudo de uma vez
+   * Lida com diferentes formatos de resposta da API
    */
   private async fetchAllSupplierProducts(supplier: Supplier): Promise<any[]> {
     try {
@@ -178,7 +190,7 @@ export class ProductsService {
       });
 
       if (!response.data || !Array.isArray(response.data)) {
-        console.warn(
+        this.logger.warn(
           `⚠️ Supplier ${supplier.name} returned invalid data format`,
         );
         return [];
@@ -187,7 +199,7 @@ export class ProductsService {
       // Normalizar produtos baseado no tipo de fornecedor
       return this.normalizeProducts(response.data, supplier.type);
     } catch (error) {
-      console.error(
+      this.logger.error(
         `❌ Error fetching products from ${supplier.name}:`,
         error.message,
       );
@@ -197,18 +209,147 @@ export class ProductsService {
 
   /**
    * Normaliza a estrutura dos produtos de acordo com o fornecedor
-   * Brazilian: { nome, descricao, imagem, preco, categoria, material, departamento }
-   * European: { name, description, gallery, price, hasDiscount, discountValue, details }
+   * Lida com estruturas aninhadas e malformadas
    */
   private normalizeProducts(products: any[], supplierType: string): any[] {
     if (!Array.isArray(products)) {
-      console.warn('⚠️ Products data is not an array');
+      this.logger.warn('⚠️ Products data is not an array');
       return [];
     }
 
-    return products
+    // Flatten nested objects and extract valid products
+    const flattenedProducts = this.flattenProductArray(products);
+
+    this.logger.debug(
+      `🔍 Produtos após flatten: ${flattenedProducts.length} de ${products.length} originais`,
+    );
+
+    return flattenedProducts
       .filter((product) => this.isValidProduct(product, supplierType))
       .map((product) => this.normalizeProduct(product, supplierType));
+  }
+
+  /**
+   * Achata array de produtos que podem conter objetos aninhados malformados
+   * Lida com estruturas como:
+   * - { "0": {...}, "1": {...}, "nome": "...", "id": "52" }
+   * - { "nome": "...", "body": {...} }
+   * - Arrays normais
+   */
+  private flattenProductArray(products: any[]): any[] {
+    const result: any[] = [];
+    const seenIds = new Set<string>();
+
+    const processItem = (item: any, depth: number = 0) => {
+      // Prevenir recursão infinita
+      if (depth > 5) return;
+
+      if (!item || typeof item !== 'object') return;
+
+      // Se for um array, processar cada item
+      if (Array.isArray(item)) {
+        for (const subItem of item) {
+          processItem(subItem, depth + 1);
+        }
+        return;
+      }
+
+      // Verificar se tem um ID válido no nível atual
+      if (item.id && (item.nome || item.name)) {
+        const id = String(item.id);
+
+        // Evitar duplicatas
+        if (!seenIds.has(id)) {
+          seenIds.add(id);
+
+          // Remover propriedades que são objetos aninhados malformados
+          const cleanItem = this.cleanProductObject(item);
+          result.push(cleanItem);
+        }
+      }
+
+      // Processar chaves que podem conter produtos aninhados
+      const keys = Object.keys(item);
+      for (const key of keys) {
+        // Ignorar chaves que são propriedades do produto válido
+        if (
+          key === 'id' ||
+          key === 'nome' ||
+          key === 'name' ||
+          key === 'preco' ||
+          key === 'price' ||
+          key === 'descricao' ||
+          key === 'description' ||
+          key === 'categoria' ||
+          key === 'category' ||
+          key === 'material' ||
+          key === 'departamento' ||
+          key === 'imagem' ||
+          key === 'image' ||
+          key === 'gallery' ||
+          key === 'hasDiscount' ||
+          key === 'discountValue' ||
+          key === 'details'
+        ) {
+          continue;
+        }
+
+        // Processar chaves numéricas ou objetos aninhados
+        if (
+          (!isNaN(Number(key)) || key === 'body' || key === 'data') &&
+          item[key] &&
+          typeof item[key] === 'object'
+        ) {
+          processItem(item[key], depth + 1);
+        }
+      }
+    };
+
+    for (const item of products) {
+      processItem(item, 0);
+    }
+
+    return result;
+  }
+
+  /**
+   * Remove propriedades inválidas ou malformadas do objeto produto
+   */
+  private cleanProductObject(product: any): any {
+    const cleaned: any = {};
+
+    for (const [key, value] of Object.entries(product)) {
+      // Pular chaves numéricas (objetos aninhados)
+      if (!isNaN(Number(key))) {
+        continue;
+      }
+
+      // Pular propriedades problemáticas
+      if (
+        key === 'body' ||
+        key === 'email' ||
+        key === 'password' ||
+        key === 'username' ||
+        key === 'userId'
+      ) {
+        continue;
+      }
+
+      // Manter apenas valores primitivos ou arrays/objetos válidos
+      if (
+        value === null ||
+        value === undefined ||
+        typeof value === 'string' ||
+        typeof value === 'number' ||
+        typeof value === 'boolean' ||
+        Array.isArray(value) ||
+        (typeof value === 'object' && Object.keys(value).length < 10)
+      ) {
+        cleaned[key] = value;
+      }
+    }
+
+    return cleaned;
   }
 
   /**
@@ -221,6 +362,11 @@ export class ProductsService {
 
     // Verificar se não é um objeto aninhado malformado
     if (typeof product.nome === 'object' || typeof product.name === 'object') {
+      return false;
+    }
+
+    // Verificar se tem propriedades inválidas
+    if (product.body || product.email || product.password) {
       return false;
     }
 

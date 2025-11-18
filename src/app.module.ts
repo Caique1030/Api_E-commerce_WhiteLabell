@@ -1,4 +1,4 @@
-import { Module, MiddlewareConsumer, RequestMethod } from '@nestjs/common';
+import { Module, OnModuleInit } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -10,6 +10,7 @@ import { ProductsModule } from './products/products.module';
 import { SuppliersModule } from './suppliers/suppliers.module';
 import { EventsModule } from './events/events.module';
 import { InitializationModule } from './initialization/initialization.module';
+import { InitializationService } from './initialization/initialization.service';
 import config from './config/config';
 
 @Module({
@@ -30,6 +31,11 @@ import config from './config/config';
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule {
- 
+export class AppModule implements OnModuleInit {
+  constructor(private readonly initService: InitializationService) {}
+
+  async onModuleInit() {
+    // Força a execução do bootstrap
+    await this.initService.onApplicationBootstrap();
+  }
 }

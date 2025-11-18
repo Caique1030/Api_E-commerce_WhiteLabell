@@ -14,17 +14,40 @@ export class InitializationService implements OnApplicationBootstrap {
     private readonly clientsService: ClientsService,
     private readonly suppliersService: SuppliersService,
     private readonly usersService: UsersService,
-  ) {}
+  ) {
+    this.logger.log('🔧 InitializationService constructor called');
+  }
 
   async onApplicationBootstrap() {
-    const options = this.getInitializationOptions();
+    this.logger.log('🎯 onApplicationBootstrap called');
+    // Aguarda o TypeORM criar as tabelas
+    await this.waitForDatabase();
 
+    const options = this.getInitializationOptions();
+    this.logger.log(`📋 Initialization options: ${JSON.stringify(options)}`);
     if (!options.enabled) {
       this.logger.log('Autostart disabled');
       return;
     }
 
     await this.initializeDatabase(options);
+  }
+
+  private async waitForDatabase(maxRetries = 10, delay = 1000): Promise<void> {
+    for (let i = 0; i < maxRetries; i++) {
+      try {
+        await this.clientsService.findAll();
+        this.logger.log('✅ Database connection verified');
+        return;
+      } catch (error) {
+        if (i === maxRetries - 1) {
+          this.logger.error('❌ Failed to connect to database after retries');
+          throw error;
+        }
+        this.logger.log(`⏳ Waiting for database... (${i + 1}/${maxRetries})`);
+        await new Promise((resolve) => setTimeout(resolve, delay));
+      }
+    }
   }
 
   private getInitializationOptions(): InitializationOptions {
@@ -36,16 +59,26 @@ export class InitializationService implements OnApplicationBootstrap {
   }
 
   private async initializeDatabase(options: InitializationOptions) {
-    this.logger.log(' Starting database verification and population...');
+    this.logger.log('🚀 Starting database verification and population...');
 
     try {
       await this.initializeClients(options);
       await this.initializeSuppliers(options);
       await this.initializeAdmin(options);
 
-      this.logger.log('Bank verification and population completed!');
+      if (options.enabled) {
+        this.logger.log(
+          '📦 Para sincronizar produtos, execute: POST /api/products/sync',
+        );
+        this.logger.log(
+          '💡 Ou configure sincronização automática via cron job',
+        );
+      }
+
+      this.logger.log('✅ Bank verification and population completed!');
     } catch (error) {
       this.logger.error('❌ Erro durante a inicialização:', error);
+      this.logger.error(error.stack);
     }
   }
 
@@ -72,7 +105,7 @@ export class InitializationService implements OnApplicationBootstrap {
     ];
 
     if (options.verbose) {
-      this.logger.log(' Checking customers...');
+      this.logger.log('👥 Checking customers...');
     }
 
     for (const clientData of clients) {
@@ -83,7 +116,7 @@ export class InitializationService implements OnApplicationBootstrap {
 
         if (existingClient && !options.force) {
           if (options.verbose) {
-            this.logger.log(`Customer "${clientData.name}" already exists!`);
+            this.logger.log(`✅ Customer "${clientData.name}" already exists!`);
           }
           continue;
         }
@@ -91,12 +124,12 @@ export class InitializationService implements OnApplicationBootstrap {
         if (existingClient && options.force) {
           await this.clientsService.update(existingClient.id, clientData);
           if (options.verbose) {
-            this.logger.log(`Customer "${clientData.name}" update!`);
+            this.logger.log(`🔄 Customer "${clientData.name}" update!`);
           }
         } else {
           const client = await this.clientsService.create(clientData);
           if (options.verbose) {
-            this.logger.log(`Customer "${client.name}" created success!`);
+            this.logger.log(`✅ Customer "${client.name}" created success!`);
           }
         }
       } catch (error) {
@@ -124,6 +157,10 @@ export class InitializationService implements OnApplicationBootstrap {
       },
     ];
 
+    if (options.verbose) {
+      this.logger.log('🏭 Checking suppliers...');
+    }
+
     for (const supplierData of suppliers) {
       try {
         const existingSuppliers = await this.suppliersService.findAll();
@@ -133,7 +170,9 @@ export class InitializationService implements OnApplicationBootstrap {
 
         if (existingSupplier && !options.force) {
           if (options.verbose) {
-            this.logger.log(`Supplier "${supplierData.name}" already exists!`);
+            this.logger.log(
+              `✅ Supplier "${supplierData.name}" already exists!`,
+            );
           }
           continue;
         }
@@ -141,13 +180,13 @@ export class InitializationService implements OnApplicationBootstrap {
         if (existingSupplier && options.force) {
           await this.suppliersService.update(existingSupplier.id, supplierData);
           if (options.verbose) {
-            this.logger.log(`Supplier "${supplierData.name}" update!`);
+            this.logger.log(`🔄 Supplier "${supplierData.name}" update!`);
           }
         } else {
           const supplier = await this.suppliersService.create(supplierData);
           if (options.verbose) {
             this.logger.log(
-              `Supplier "${supplier.name}" successfully created!`,
+              `✅ Supplier "${supplier.name}" successfully created!`,
             );
           }
         }
@@ -168,24 +207,28 @@ export class InitializationService implements OnApplicationBootstrap {
 
       if (existingAdmin && !options.force) {
         if (options.verbose) {
-          this.logger.log(' Administrator user already exists!');
+          this.logger.log('✅ Administrator user already exists!');
         }
         return;
       }
 
       let defaultClient;
       try {
-        defaultClient =
-          await this.clientsService.findByDomain('localhost');
+        defaultClient = await this.clientsService.findByDomain('localhost');
       } catch {
-        defaultClient = await this.clientsService.create({
-          name: 'Localhost Client',
-          domain: 'localhost',
-          primaryColor: '#2ecc71',
-          secondaryColor: '#27ae60',
-        });
-        if (options.verbose) {
-          this.logger.log('Default client successfully created!');
+        try {
+          defaultClient =
+            await this.clientsService.findByDomain('localhost:3000');
+        } catch {
+          defaultClient = await this.clientsService.create({
+            name: 'Localhost Client',
+            domain: 'localhost',
+            primaryColor: '#2ecc71',
+            secondaryColor: '#27ae60',
+          });
+          if (options.verbose) {
+            this.logger.log('✅ Default client successfully created!');
+          }
         }
       }
 
@@ -197,17 +240,19 @@ export class InitializationService implements OnApplicationBootstrap {
           clientId: defaultClient.id,
         });
         if (options.verbose) {
-          this.logger.log('Admin user updated!');
+          this.logger.log('🔄 Admin user updated!');
         }
       } else {
-        // Criar usuário admin
-        const admin = await this.usersService.create({
+        await this.usersService.create({
           name: 'Administrador',
           email: 'admin@example.com',
           password: 'admin123',
           role: 'admin',
           clientId: defaultClient.id,
         });
+        if (options.verbose) {
+          this.logger.log('✅ Admin user created successfully!');
+        }
       }
     } catch (error) {
       this.logger.error('❌ Erro ao criar usuário administrador:', error);
