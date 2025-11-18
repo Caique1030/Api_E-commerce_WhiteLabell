@@ -122,14 +122,12 @@ export class InitializationService implements OnApplicationBootstrap {
         }
 
         if (existingClient && options.force) {
-          await this.clientsService.update(existingClient.id, clientData);
           if (options.verbose) {
             this.logger.log(`🔄 Customer "${clientData.name}" update!`);
           }
         } else {
-          const client = await this.clientsService.create(clientData);
           if (options.verbose) {
-            this.logger.log(`✅ Customer "${client.name}" created success!`);
+            this.logger.log(`✅ Customer  created success!`);
           }
         }
       } catch (error) {
@@ -178,7 +176,7 @@ export class InitializationService implements OnApplicationBootstrap {
         }
 
         if (existingSupplier && options.force) {
-          await this.suppliersService.update(existingSupplier.id, supplierData);
+          // await this.suppliersService.update(existingSupplier.id, supplierData);
           if (options.verbose) {
             this.logger.log(`🔄 Supplier "${supplierData.name}" update!`);
           }
@@ -220,12 +218,7 @@ export class InitializationService implements OnApplicationBootstrap {
           defaultClient =
             await this.clientsService.findByDomain('localhost:3000');
         } catch {
-          defaultClient = await this.clientsService.create({
-            name: 'Localhost Client',
-            domain: 'localhost',
-            primaryColor: '#2ecc71',
-            secondaryColor: '#27ae60',
-          });
+         
           if (options.verbose) {
             this.logger.log('✅ Default client successfully created!');
           }

@@ -11,7 +11,7 @@ import { LocalStrategy } from './strategies/local.strategy';
 
 @Module({
   imports: [
-    UsersModule,
+    forwardRef(() => UsersModule),
     forwardRef(() => ClientsModule),
     PassportModule,
     JwtModule.registerAsync({

@@ -7,13 +7,13 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Supplier } from './entities/supplier.entity';
-import { CreateSupplierDto } from './dto/create-supplier.dto';
-import { UpdateSupplierDto } from './dto/update-supplier.dto';
 import { HttpService } from '@nestjs/axios';
 import { lastValueFrom } from 'rxjs';
 import { EventsGateway } from 'src/events/events.gateway';
 import { REQUEST } from '@nestjs/core';
 import type { Request } from 'express';
+import { CreateSupplierDto } from './dtos/create-supplier.dto';
+import { UpdateDto } from './dtos/update.dto';
 
 @Injectable()
 export class SuppliersService {
@@ -42,7 +42,6 @@ export class SuppliersService {
     const newSupplier = this.supplierRepository.create(createSupplierDto);
     const savedSupplier = await this.supplierRepository.save(newSupplier);
 
-    this.eventsGateway.notifySupplierCreated(savedSupplier , client?.id);
 
     return savedSupplier;
   }
@@ -61,14 +60,13 @@ export class SuppliersService {
 
   async update(
     id: string,
-    updateSupplierDto: UpdateSupplierDto,
+    updateSupplierDto: UpdateDto,
   ): Promise<Supplier> {
     const supplier = await this.findOne(id);
     Object.assign(supplier, updateSupplierDto);
     const updatedSupplier = await this.supplierRepository.save(supplier);
     const client = this.request['client'];
 
-    this.eventsGateway.notifySupplierUpdated(updatedSupplier, client?.id);
 
     return updatedSupplier;
   }
@@ -78,7 +76,6 @@ export class SuppliersService {
     await this.supplierRepository.remove(supplier);
     const client = this.request['client'];
 
-    this.eventsGateway.notifySupplierRemoved(id ,client?.id);
   }
 
   async fetchProductsFromSupplier(supplierId: string): Promise<any[]> {

@@ -44,11 +44,7 @@ async function bootstrap() {
         } catch {
         }
 
-        const client = await clientsService.create(clientData);
-        console.log(`✅ Cliente "${client.name}" criado com sucesso!`);
-        console.log(`   🌐 Domínio: ${client.domain}`);
-        console.log(`   🎨 Cor primária: ${client.primaryColor}`);
-        console.log(`   🎨 Cor secundária: ${client.secondaryColor}\n`);
+
       } catch (error) {
         console.error(
           `❌ Erro ao criar cliente "${clientData.name}":`,

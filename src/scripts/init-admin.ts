@@ -17,12 +17,7 @@ async function bootstrap() {
       defaultClient = await clientsService.findByDomain('localhost:3000');
     } catch {
       console.log('Criando cliente padrão...');
-      defaultClient = await clientsService.create({
-        name: 'Localhost Client',
-        domain: 'localhost:3000',
-        primaryColor: '#2ecc71',
-        secondaryColor: '#27ae60',
-      });
+      
       console.log('Cliente padrão criado com sucesso!');
     }
 
