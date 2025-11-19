@@ -13,7 +13,10 @@ import { LocalStrategy } from './strategies/local.strategy';
   imports: [
     forwardRef(() => UsersModule),
     forwardRef(() => ClientsModule),
-    PassportModule,
+
+    // 🔥 ESTA LINHA É FUNDAMENTAL
+    PassportModule.register({ session: false }),
+
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],

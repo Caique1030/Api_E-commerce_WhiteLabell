@@ -1,24 +1,27 @@
-import { Module, forwardRef, MiddlewareConsumer, RequestMethod, NestModule } from '@nestjs/common';
+import { Module, MiddlewareConsumer, RequestMethod, NestModule } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { ClientsService } from './clients.service';
-import { ClientsController } from './clients.controller';
 import { Client } from './entities/client.entity';
-import { AuthModule } from 'src/auth/auth.module';
+import { ClientsService } from './clients.service';
 import { ClientMiddleware } from './middleware/client.middleware';
 
 @Module({
-  controllers: [ClientsController],
-  providers: [ClientsService],
   imports: [
-    TypeOrmModule.forFeature([Client]),
-    forwardRef(() => AuthModule),
+    TypeOrmModule.forFeature([Client])
   ],
-  exports: [ClientsService],
+  providers: [ClientsService],
+  exports: [ClientsService]  // <-- NECESSÁRIO para outros módulos
 })
 export class ClientsModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
     consumer
       .apply(ClientMiddleware)
+      .exclude(
+        // Rotas públicas
+        { path: 'auth/login', method: RequestMethod.POST },
+        { path: 'auth/register', method: RequestMethod.POST },
+        { path: 'auth/forgot-password', method: RequestMethod.POST },
+        { path: 'auth/reset-password', method: RequestMethod.POST },
+      )
       .forRoutes({ path: '*', method: RequestMethod.ALL });
   }
 }
