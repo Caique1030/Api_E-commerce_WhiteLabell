@@ -1,3 +1,5 @@
+CREATE DATABASE IF NOT EXISTS ecommerce_whitelabell;
+
 -- ===================================================
 -- EXTENSÃO PARA UUID
 -- ===================================================
@@ -116,61 +118,4 @@ BEFORE UPDATE ON users
 FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
 
-
--- ===================================================
--- TABELA: orders
--- ===================================================
-DROP TABLE IF EXISTS orders CASCADE;
-
-CREATE TABLE orders (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    client_id UUID REFERENCES clients(id) ON DELETE SET NULL,
-    user_id UUID REFERENCES users(id) ON DELETE SET NULL,
-    total_amount NUMERIC(10,2) NOT NULL DEFAULT 0.00,
-    status VARCHAR(50) DEFAULT 'pending',
-    payment_method VARCHAR(50),
-    created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITHOUT TIME ZONE DEFAULT NOW()
-);
-
-CREATE TRIGGER trg_orders_set_updated_at
-BEFORE UPDATE ON orders
-FOR EACH ROW EXECUTE FUNCTION set_updated_at();
-
-
-
--- ===================================================
--- TABELA: order_items
--- ===================================================
-DROP TABLE IF EXISTS order_items CASCADE;
-
-CREATE TABLE order_items (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    order_id UUID REFERENCES orders(id) ON DELETE CASCADE,
-    product_id UUID REFERENCES products(id) ON DELETE SET NULL,
-    quantity INTEGER NOT NULL DEFAULT 1,
-    unit_price NUMERIC(10,2) NOT NULL DEFAULT 0.00,
-    discount_applied NUMERIC(10,2) DEFAULT 0.00,
-    subtotal NUMERIC(12,2) GENERATED ALWAYS AS ((quantity * unit_price) - discount_applied) STORED,
-    created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT NOW()
-);
-
-CREATE INDEX idx_order_items_order_id ON order_items(order_id);
-
-
-
--- ===================================================
--- TABELA: activity_logs
--- ===================================================
-DROP TABLE IF EXISTS activity_logs CASCADE;
-
-CREATE TABLE activity_logs (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID REFERENCES users(id) ON DELETE SET NULL,
-    action VARCHAR(255),
-    metadata JSONB,
-    created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT NOW()
-);
-
-CREATE INDEX idx_activity_logs_user_id ON activity_logs(user_id);
 

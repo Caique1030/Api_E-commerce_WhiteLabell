@@ -12,23 +12,23 @@ import { User } from '../../users/entities/user.entity';
 export class Client {
   @PrimaryGeneratedColumn('uuid')
   id: string;
-@Column({ unique: true, nullable: false })
-name: string;
-  
 
-@Column({ unique: true, nullable: false })
-domain: string;
+  @Column({ unique: true, nullable: false })
+  name: string;
+
+  @Column({ unique: true, nullable: false })
+  domain: string;
 
   @Column({ nullable: true })
   logo: string;
 
-  @Column({ nullable: true })
+  @Column({ name: 'primary_color', nullable: true })
   primaryColor: string;
 
-  @Column({ nullable: true })
+  @Column({ name: 'secondary_color', nullable: true })
   secondaryColor: string;
 
-  @Column({ default: true })
+  @Column({ name: 'is_active', default: true })
   isActive: boolean;
 
   @OneToMany(() => User, (user) => user.client)

@@ -9,9 +9,8 @@ import { ClientsModule } from './clients/clients.module';
 import { ProductsModule } from './products/products.module';
 import { SuppliersModule } from './suppliers/suppliers.module';
 import { EventsModule } from './events/events.module';
-import { InitializationModule } from './initialization/initialization.module';
-import { InitializationService } from './initialization/initialization.service';
 import config from './config/config';
+import { InitializationModule } from './initialization/initialization.module';
 
 @Module({
   imports: [
@@ -31,11 +30,5 @@ import config from './config/config';
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule implements OnModuleInit {
-  constructor(private readonly initService: InitializationService) {}
+export class AppModule {}
 
-  async onModuleInit() {
-    // Força a execução do bootstrap
-    await this.initService.onApplicationBootstrap();
-  }
-}
