@@ -1,8 +1,14 @@
-import { Controller, Post, UseGuards, Request, Body, Req } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Request,
+  Body,
+  Req,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
-import { LocalAuthGuard } from './guards/local-auth.guard';
 
 @Controller('auth')
 export class AuthController {
@@ -19,15 +25,21 @@ export class AuthController {
     return host.split(':')[0].trim();
   }
 
-
+  // ✅ SEM USAR LocalAuthGuard - Validação direta
   @Post('login')
-  @UseGuards(LocalAuthGuard)
-  async login(@Req() req: any) {
+  async login(@Req() req: any, @Body() loginDto: LoginDto) {
+    const { email, password } = loginDto;
+
+    // Valida o usuário diretamente
+    const user = await this.authService.validateUser(email, password);
+
+    if (!user) {
+      throw new UnauthorizedException('Credenciais inválidas');
+    }
+
     const domain = this.extractDomain(req);
-    return this.authService.login(req.user, domain);
+    return this.authService.login(user, domain);
   }
-
-
 
   @Post('register')
   async register(@Request() req, @Body() registerDto: RegisterDto) {

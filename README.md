@@ -1,27 +1,29 @@
-# 🛒 E-commerce Whitelabel API - Processo Seletivo 2025
+# 🛒 E-commerce Whitelabel API
 
-> API completa para sistema de e-commerce whitelabel construído com NestJS
+> API completa para sistema de e-commerce whitelabel construído com NestJS, TypeScript e PostgreSQL
 
 [![NestJS](https://img.shields.io/badge/NestJS-11.x-E0234E?logo=nestjs)](https://nestjs.com/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178C6?logo=typescript)](https://www.typescriptlang.org/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-14+-336791?logo=postgresql)](https://www.postgresql.org/)
+[![Socket.io](https://img.shields.io/badge/Socket.io-4.x-010101?logo=socket.io)](https://socket.io/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 ---
 
 ## 📋 Descrição
 
-Esta API permite que diferentes clientes (lojas) utilizem a mesma plataforma de e-commerce com suas próprias personalizações visuais (whitelabel). O sistema consome produtos de **dois fornecedores externos** e os disponibiliza através de endpoints próprios.
+Esta API permite que diferentes clientes (lojas) utilizem a mesma plataforma de e-commerce com suas próprias personalizações visuais (whitelabel). O sistema consome produtos de **dois fornecedores externos** e os disponibiliza através de endpoints próprios com sincronização automática.
 
 ### 🎯 Principais Funcionalidades
 
-- ✅ **Autenticação JWT** - Login e registro de usuários
-- ✅ **Sistema Whitelabel** - Identificação de cliente por domínio
-- ✅ **Integração com Fornecedores** - Sincronização automática de produtos
-- ✅ **Listagem e Filtros** - Busca avançada de produtos
-- ✅ **WebSockets** - Notificações em tempo real
+- ✅ **Autenticação JWT** - Sistema de autenticação sem LocalStrategy (validação direta)
+- ✅ **Sistema Whitelabel** - Identificação automática de cliente por domínio
+- ✅ **Integração com Fornecedores** - Sincronização automática de produtos de múltiplas APIs
+- ✅ **Listagem e Filtros Avançados** - Busca por nome, categoria, preço e fornecedor
+- ✅ **WebSockets** - Notificações em tempo real via Socket.io
 - ✅ **CRUD Completo** - Produtos, Clientes, Fornecedores e Usuários
-- ✅ **Auditoria** - Logs de atividades do sistema
+- ✅ **Inicialização Automática** - Criação automática de banco e dados iniciais
+- ✅ **CORS Configurado** - Suporte para múltiplos domínios e ambientes
 
 ---
 
@@ -29,93 +31,105 @@ Esta API permite que diferentes clientes (lojas) utilizem a mesma plataforma de 
 
 O projeto segue uma **arquitetura modular** baseada em NestJS, utilizando:
 
-- **Repository Pattern** - Separação de lógica de acesso aos dados
-- **Dependency Injection** - Gerenciamento automático de dependências
-- **DTOs e Validation** - Validação de dados com class-validator
-- **Middleware** - Identificação de cliente por domínio
-- **Guards** - Proteção de rotas com JWT
-- **WebSockets** - Comunicação em tempo real via Socket.io
+- **Clean Architecture** - Separação clara entre camadas de domínio, aplicação e infraestrutura
+- **Repository Pattern** - Isolamento da lógica de acesso aos dados
+- **Dependency Injection** - Gerenciamento automático de dependências pelo NestJS
+- **DTOs e Validation** - Validação de dados com class-validator e class-transformer
+- **Middleware** - Identificação automática de cliente por domínio (x-client-domain ou host)
+- **Guards Customizados** - Proteção de rotas sem dependência de LocalStrategy
+- **WebSockets** - Comunicação bidirecional em tempo real
+- **Request Scope** - Injeção de contexto da requisição para multi-tenancy
 
 ### 📦 Módulos Principais
 
-| Módulo              | Responsabilidade                          |
-| ------------------- | ----------------------------------------- |
-| **AuthModule**      | Autenticação e autorização (JWT)          |
-| **UsersModule**     | Gerenciamento de usuários                 |
-| **ClientsModule**   | Gerenciamento de clientes whitelabel      |
-| **ProductsModule**  | Gerenciamento e sincronização de produtos |
-| **SuppliersModule** | Gerenciamento de fornecedores externos    |
-| **EventsModule**    | Notificações em tempo real (WebSockets)   |
-| **DatabaseModule**  | Configuração do TypeORM e PostgreSQL      |
+| Módulo                   | Responsabilidade                                                    |
+| ------------------------ | ------------------------------------------------------------------- |
+| **AuthModule**           | Autenticação JWT (sem LocalStrategy, validação direta)              |
+| **UsersModule**          | Gerenciamento completo de usuários                                  |
+| **ClientsModule**        | Gerenciamento de clientes whitelabel (domínio, cores, logo)         |
+| **ProductsModule**       | Sincronização e gerenciamento de produtos de múltiplos fornecedores |
+| **SuppliersModule**      | Gerenciamento de fornecedores externos (brazilian/european)         |
+| **EventsModule**         | WebSockets para notificações em tempo real                          |
+| **DatabaseModule**       | Configuração TypeORM e criação automática do banco                  |
+| **InitializationModule** | População automática de dados iniciais (clientes e fornecedores)    |
 
 ---
 
 ## 🗄️ Estrutura do Banco de Dados
 
-### Diagrama Entidade-Relacionamento (ER)
-
-![Diagrama ER](./er-diagram.svg)
-
 ### 📊 Tabelas Principais
 
-| Tabela            | Descrição                                                        |
-| ----------------- | ---------------------------------------------------------------- |
-| **clients**       | Armazena os dados dos clientes whitelabel (domínio, cores, logo) |
-| **users**         | Usuários do sistema associados a um cliente específico           |
-| **suppliers**     | Fornecedores externos que disponibilizam produtos                |
-| **products**      | Produtos de todos os fornecedores (sincronizados)                |
-| **orders**        | Pedidos realizados pelos usuários                                |
-| **order_items**   | Itens individuais de cada pedido                                 |
-| **activity_logs** | Logs de auditoria do sistema                                     |
+| Tabela        | Descrição                                                           |
+| ------------- | ------------------------------------------------------------------- |
+| **clients**   | Clientes whitelabel (domínio, primary_color, secondary_color, logo) |
+| **users**     | Usuários do sistema vinculados a um cliente específico              |
+| **suppliers** | Fornecedores externos (brazilian, european) com URLs das APIs       |
+| **products**  | Produtos sincronizados de todos os fornecedores                     |
 
 #### 🔗 Relacionamentos Principais
 
 ```
 clients (1) ──→ (N) users
 clients (1) ──→ (N) products
-clients (1) ──→ (N) orders
-
 suppliers (1) ──→ (N) products
+```
 
-users (1) ──→ (N) orders
-users (1) ──→ (N) activity_logs
+### 🗂️ Entidades TypeORM
 
-orders (1) ──→ (N) order_items
-products (1) ──→ (N) order_items
+#### Product Entity
+
+```typescript
+- id: UUID (PK)
+- name: string
+- description: text
+- price: numeric(10,2)
+- image: string (URL)
+- gallery: string[] (array de URLs)
+- category: string
+- material: string (apenas fornecedor brasileiro)
+- department: string (apenas fornecedor brasileiro)
+- discountValue: string
+- hasDiscount: boolean
+- externalId: string (ID do fornecedor)
+- supplierId: UUID (FK)
+- clientId: UUID (FK)
+- createdAt: timestamp
+- updatedAt: timestamp
 ```
 
 ---
 
 ## 🧰 Tecnologias Utilizadas
 
-### Backend
+### Backend Core
 
-- **[NestJS](https://nestjs.com/)** v11.x - Framework Node.js progressivo
+- **[NestJS](https://nestjs.com/)** v11.x - Framework Node.js progressivo para aplicações server-side
 - **[TypeScript](https://www.typescriptlang.org/)** v5.7 - JavaScript com tipagem estática
-- **[TypeORM](https://typeorm.io/)** v0.3 - ORM para interação com banco de dados
+- **[TypeORM](https://typeorm.io/)** v0.3 - ORM TypeScript/JavaScript para bancos relacionais
 
 ### Banco de Dados
 
-- **[PostgreSQL](https://www.postgresql.org/)** v14+ - Banco de dados relacional robusto
+- **[PostgreSQL](https://www.postgresql.org/)** v14+ - Banco de dados relacional com suporte a JSONB
 
 ### Autenticação & Segurança
 
-- **[Passport](http://www.passportjs.org/)** - Middleware de autenticação
-- **[JWT](https://jwt.io/)** - JSON Web Tokens para autenticação stateless
-- **[bcrypt](https://www.npmjs.com/package/bcrypt)** - Hash de senhas
+- **[@nestjs/passport](https://www.npmjs.com/package/@nestjs/passport)** v11.x - Integração Passport com NestJS
+- **[@nestjs/jwt](https://www.npmjs.com/package/@nestjs/jwt)** - JWT tokens para autenticação stateless
+- **[bcrypt](https://www.npmjs.com/package/bcrypt)** - Hash seguro de senhas
 
 ### Validação & Transformação
 
 - **[class-validator](https://github.com/typestack/class-validator)** - Validação baseada em decorators
-- **[class-transformer](https://github.com/typestack/class-transformer)** - Transformação de objetos
+- **[class-transformer](https://github.com/typestack/class-transformer)** - Transformação e serialização
 
 ### Comunicação em Tempo Real
 
 - **[Socket.io](https://socket.io/)** v4.x - WebSockets para eventos em tempo real
+- **[@nestjs/websockets](https://www.npmjs.com/package/@nestjs/websockets)** - Integração WebSocket
 
-### HTTP & APIs
+### HTTP & APIs Externas
 
-- **[Axios](https://axios-http.com/)** - Cliente HTTP para integração com fornecedores
+- **[Axios](https://axios-http.com/)** - Cliente HTTP para consumir APIs dos fornecedores
 
 ---
 
@@ -140,40 +154,9 @@ cd <nome-do-projeto>
 
 ```bash
 npm install
-# ou
-yarn install
 ```
 
-### 3️⃣ Configure o Banco de Dados
-
-#### Crie o banco de dados:
-
-```bash
-# Conecte ao PostgreSQL
-psql -U postgres
-
-# Crie o banco de dados
-CREATE DATABASE ecommerce_whitelabel;
-
-# Saia do psql
-\q
-```
-
-#### Execute o script SQL:
-
-```bash
-psql -U postgres -d ecommerce_whitelabel -a -f database_script.sql
-```
-
-O script criará:
-
-- ✅ Extensão UUID
-- ✅ Função de atualização automática de timestamps
-- ✅ Todas as tabelas com relacionamentos
-- ✅ Índices otimizados
-- ✅ Triggers para updated_at
-
-### 4️⃣ Configure as Variáveis de Ambiente
+### 3️⃣ Configure as Variáveis de Ambiente
 
 Crie um arquivo `.env` na raiz do projeto:
 
@@ -183,7 +166,7 @@ DATABASE_HOST=localhost
 DATABASE_PORT=5432
 DATABASE_USERNAME=postgres
 DATABASE_PASSWORD=sua_senha
-DATABASE_NAME=ecommerce_whitelabel
+DATABASE_NAME=e_commerce_whitelabel
 
 # JWT
 JWT_SECRET=seu_segredo_super_seguro_aqui_12345
@@ -194,34 +177,36 @@ PORT=3000
 NODE_ENV=development
 ```
 
-### 5️⃣ Popule o Banco com Dados Iniciais (Opcional)
-
-```bash
-# Criar fornecedores
-npm run seed:suppliers
-
-# Criar clientes whitelabel
-npm run seed:clients
-
-# Criar usuário administrador
-npm run seed:admin
-
-# Ou executar todos de uma vez
-npm run seed:all
-```
-
-### 6️⃣ Inicie a Aplicação
+### 4️⃣ Inicie a Aplicação
 
 ```bash
 # Modo desenvolvimento (com hot-reload)
 npm run start:dev
-
-# Modo produção
-npm run build
-npm run start:prod
 ```
 
-A API estará disponível em: **http://localhost:3000**
+**🎉 Pronto!** O sistema irá:
+
+1. ✅ Criar automaticamente o banco de dados `e_commerce_whitelabel`
+2. ✅ Executar todas as migrations do TypeORM
+3. ✅ Popular dados iniciais (3 clientes e 2 fornecedores)
+4. ✅ Iniciar o servidor HTTP em `http://localhost:3000`
+5. ✅ Iniciar o servidor WebSocket em `ws://localhost:3000/events`
+
+**Logs esperados:**
+
+```bash
+✔ Database 'e_commerce_whitelabel' já existe.
+[NestFactory] Starting Nest application...
+[InitializationService] 🌱 Iniciando verificação de dados...
+[InitializationService] ✔ Cliente já existe: Devnology
+[InitializationService] ✔ Cliente já existe: IN8
+[InitializationService] ✔ Cliente já existe: Localhost Client
+[InitializationService] ✔ Fornecedor já existe: Fornecedor Brasileiro
+[InitializationService] ✔ Fornecedor já existe: Fornecedor Europeu
+[InitializationService] ✅ Dados iniciais verificados e inseridos quando necessário!
+🚀 Application is running on: http://localhost:3000
+📡 WebSocket Server available at: ws://localhost:3000/events
+```
 
 ---
 
@@ -237,13 +222,47 @@ http://localhost:3000/api
 
 #### POST `/auth/register`
 
-Registra um novo usuário
+Registra um novo usuário para o cliente identificado pelo domínio
+
+**Headers:**
+
+```
+X-Client-Domain: devnology.com
+# ou deixe que o sistema detecte automaticamente pelo Host
+```
 
 **Body:**
 
 ```json
 {
   "name": "João Silva",
+  "email": "joao@example.com",
+  "password": "senha123",
+  "role": "user"
+}
+```
+
+**Response:**
+
+```json
+{
+  "id": "uuid",
+  "name": "João Silva",
+  "email": "joao@example.com",
+  "role": "user",
+  "clientId": "uuid",
+  "createdAt": "2025-01-01T00:00:00.000Z"
+}
+```
+
+#### POST `/auth/login`
+
+Realiza login do usuário (validação direta sem LocalStrategy)
+
+**Body:**
+
+```json
+{
   "email": "joao@example.com",
   "password": "senha123"
 }
@@ -258,33 +277,8 @@ Registra um novo usuário
     "id": "uuid",
     "name": "João Silva",
     "email": "joao@example.com",
-    "role": "user"
-  }
-}
-```
-
-#### POST `/auth/login`
-
-Realiza login do usuário
-
-**Body:**
-
-```json
-{
-  "email": "joao@example.com",
-  "password": "senha123"
-}
-```
-
-**Response:**
-
-```json
-{
-  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "user": {
-    "id": "uuid",
-    "name": "João Silva",
-    "email": "joao@example.com"
+    "role": "user",
+    "clientId": "uuid"
   }
 }
 ```
@@ -295,7 +289,7 @@ Realiza login do usuário
 
 #### GET `/clients`
 
-Lista todos os clientes
+Lista todos os clientes cadastrados
 
 **Response:**
 
@@ -303,12 +297,13 @@ Lista todos os clientes
 [
   {
     "id": "uuid",
-    "name": "Devnology Store",
-    "domain": "devnology.com:3000",
-    "primaryColor": "#00FF00",
-    "secondaryColor": "#004400",
-    "logo": "https://example.com/logo.png",
-    "isActive": true
+    "name": "Devnology",
+    "domain": "devnology.com",
+    "primaryColor": "#2ecc71",
+    "secondaryColor": "#27ae60",
+    "logo": null,
+    "isActive": true,
+    "createdAt": "2025-01-01T00:00:00.000Z"
   }
 ]
 ```
@@ -316,36 +311,6 @@ Lista todos os clientes
 #### GET `/clients/:id`
 
 Obtém detalhes de um cliente específico
-
-#### POST `/clients` 🔒 (Requer autenticação)
-
-Cria um novo cliente
-
-**Headers:**
-
-```
-Authorization: Bearer <seu_token>
-```
-
-**Body:**
-
-```json
-{
-  "name": "Nova Loja",
-  "domain": "novaloja.com:3000",
-  "primaryColor": "#FF0000",
-  "secondaryColor": "#990000",
-  "logo": "https://example.com/logo.png"
-}
-```
-
-#### PATCH `/clients/:id` 🔒
-
-Atualiza um cliente existente
-
-#### DELETE `/clients/:id` 🔒
-
-Remove um cliente
 
 ---
 
@@ -362,13 +327,13 @@ Lista produtos com filtros opcionais
 - `minPrice` - Preço mínimo
 - `maxPrice` - Preço máximo
 - `supplierId` - Filtra por fornecedor
-- `limit` - Quantidade de resultados (default: 10)
-- `offset` - Paginação (default: 0)
+- `limit` - Quantidade de resultados (padrão: 150, use -1 para todos)
+- `offset` - Paginação (padrão: 0)
 
 **Exemplo:**
 
 ```bash
-GET /api/products?name=notebook&minPrice=1000&maxPrice=5000&limit=20
+GET /api/products?category=Eletrônicos&minPrice=1000&limit=20
 ```
 
 **Response:**
@@ -378,42 +343,42 @@ GET /api/products?name=notebook&minPrice=1000&maxPrice=5000&limit=20
   "products": [
     {
       "id": "uuid",
-      "name": "Notebook Dell",
+      "name": "Notebook",
       "description": "Notebook de alta performance",
       "price": 3500.0,
       "image": "https://example.com/image.jpg",
+      "gallery": ["url1", "url2"],
       "category": "Eletrônicos",
+      "material": "Plástico",
+      "department": "Informática",
+      "discountValue": "10%",
+      "hasDiscount": true,
+      "externalId": "123",
+      "supplierId": "uuid",
       "supplier": {
         "id": "uuid",
-        "name": "Fornecedor Brasileiro"
+        "name": "Fornecedor Brasileiro",
+        "type": "brazilian"
       }
     }
   ],
-  "total": 45
+  "total": 150
 }
 ```
 
 #### GET `/products/:id`
 
-Obtém detalhes de um produto específico
-
-#### POST `/products` 🔒
-
-Cria um novo produto manualmente
-
-#### PATCH `/products/:id` 🔒
-
-Atualiza um produto existente
-
-#### DELETE `/products/:id` 🔒
-
-Remove um produto
+Obtém detalhes completos de um produto específico
 
 #### POST `/products/sync` 🔒
 
-**Sincroniza produtos dos fornecedores externos**
+Sincroniza produtos de todos os fornecedores cadastrados
 
-Este é o endpoint mais importante! Ele busca produtos dos dois fornecedores e os adiciona ao banco de dados.
+**Headers:**
+
+```
+Authorization: Bearer <seu_token>
+```
 
 **Response:**
 
@@ -438,7 +403,7 @@ Este é o endpoint mais importante! Ele busca produtos dos dois fornecedores e o
 
 #### GET `/suppliers`
 
-Lista todos os fornecedores
+Lista todos os fornecedores cadastrados
 
 **Response:**
 
@@ -449,33 +414,23 @@ Lista todos os fornecedores
     "name": "Fornecedor Brasileiro",
     "type": "brazilian",
     "apiUrl": "http://616d6bdb6dacbb001794ca17.mockapi.io/devnology/brazilian_provider",
-    "isActive": true
+    "isActive": true,
+    "createdAt": "2025-01-01T00:00:00.000Z"
   }
 ]
 ```
 
-#### POST `/suppliers` 🔒
+#### GET `/suppliers/:id`
 
-Cria um novo fornecedor
+Obtém detalhes de um fornecedor específico
 
-**Body:**
+#### GET `/suppliers/:id/products`
 
-```json
-{
-  "name": "Novo Fornecedor",
-  "type": "brazilian",
-  "apiUrl": "https://api.fornecedor.com/products",
-  "isActive": true
-}
-```
+Lista produtos de um fornecedor específico
 
-#### PATCH `/suppliers/:id` 🔒
+#### GET `/suppliers/:id/products/:productId`
 
-Atualiza um fornecedor
-
-#### DELETE `/suppliers/:id` 🔒
-
-Remove um fornecedor
+Obtém um produto específico de um fornecedor
 
 ---
 
@@ -485,27 +440,34 @@ Remove um fornecedor
 
 Lista todos os usuários
 
+#### GET `/users/profile` 🔒
+
+Obtém perfil do usuário autenticado
+
 #### GET `/users/:id` 🔒
 
 Obtém um usuário específico
 
-#### POST `/users` 🔒
+#### PATCH `/users/profile` 🔒
 
-Cria um novo usuário
+Atualiza perfil do usuário autenticado
 
-#### PATCH `/users/:id` 🔒
+#### PATCH `/users/change-password` 🔒
 
-Atualiza um usuário
+Altera senha do usuário autenticado
 
-#### DELETE `/users/:id` 🔒
+**Body:**
 
-Remove um usuário
+```json
+{
+  "oldPassword": "senha_antiga",
+  "newPassword": "senha_nova"
+}
+```
 
 ---
 
 ## 🔌 WebSockets (Eventos em Tempo Real)
-
-O sistema utiliza Socket.io para notificações em tempo real.
 
 ### Conectar ao WebSocket
 
@@ -514,10 +476,14 @@ import io from 'socket.io-client';
 
 const socket = io('http://localhost:3000/events', {
   transports: ['websocket'],
+  auth: {
+    token: 'seu_jwt_token_aqui', // Opcional
+  },
 });
 
 socket.on('connect', () => {
   console.log('Conectado ao servidor WebSocket');
+  console.log('Socket ID:', socket.id);
 });
 ```
 
@@ -541,12 +507,18 @@ socket.on('connect', () => {
 // Escutar novos produtos
 socket.on('product:created', (data) => {
   console.log('Novo produto:', data);
-  // { id, name, price, clientId }
+  // { id, name, price, supplierId, clientId }
 });
 
 // Escutar atualizações de produtos
 socket.on('product:updated', (data) => {
   console.log('Produto atualizado:', data);
+});
+
+// Escutar sincronização de produtos
+socket.on('products:synced', (stats) => {
+  console.log('Produtos sincronizados:', stats);
+  // { productsCreated, productsUpdated, totalSuppliers }
 });
 ```
 
@@ -554,14 +526,14 @@ socket.on('product:updated', (data) => {
 
 ## 🎨 Sistema Whitelabel
 
-O sistema identifica automaticamente o cliente pelo **domínio da requisição**.
+O sistema identifica automaticamente o cliente através do **domínio da requisição**.
 
 ### Como Funciona?
 
-1. O `ClientMiddleware` intercepta todas as requisições
-2. Extrai o domínio do header `Host`
+1. **ClientMiddleware** intercepta todas as requisições
+2. Extrai o domínio de: `X-Client-Domain` header → `Host` header
 3. Busca o cliente no banco de dados
-4. Anexa as informações do cliente à requisição
+4. Anexa as informações do cliente à requisição (`req.client`)
 
 ### Configuração Local (/etc/hosts)
 
@@ -589,14 +561,15 @@ Adicione as linhas:
 ### Testando o Whitelabel
 
 ```bash
-# Cliente Devnology (tema verde)
+# Cliente Devnology (tema verde: #2ecc71)
 curl http://devnology.com:3000/api/products
 
-# Cliente In8 (tema roxo)
+# Cliente In8 (tema roxo: #8e44ad)
 curl http://in8.com:3000/api/products
-```
 
-Cada cliente terá suas próprias cores e logo retornados nas requisições.
+# Localhost (tema verde padrão)
+curl http://localhost:3000/api/products
+```
 
 ---
 
@@ -610,8 +583,8 @@ Cada cliente terá suas próprias cores e logo retornados nas requisições.
 curl -X POST http://localhost:3000/api/auth/login \
   -H "Content-Type: application/json" \
   -d '{
-    "email": "admin@example.com",
-    "password": "admin123"
+    "email": "usuario@exemplo.com",
+    "password": "senha123"
   }'
 ```
 
@@ -633,47 +606,42 @@ curl http://localhost:3000/api/products
 #### 4. Filtrar Produtos
 
 ```bash
-curl "http://localhost:3000/api/products?category=Eletrônicos&minPrice=1000"
+curl "http://localhost:3000/api/products?category=Eletrônicos&minPrice=1000&limit=10"
 ```
 
-### Com Postman/Insomnia
+#### 5. Buscar por Nome
 
-Importe a collection disponível em: `docs/postman_collection.json`
-
-A collection inclui:
-
-- ✅ Todos os endpoints documentados
-- ✅ Exemplos de requisições
-- ✅ Variáveis de ambiente configuradas
-- ✅ Testes automatizados
+```bash
+curl "http://localhost:3000/api/products?name=notebook"
+```
 
 ---
 
-## 🔗 APIs dos Fornecedores
-
-O sistema integra com duas APIs externas:
+## 📗 APIs dos Fornecedores
 
 ### Fornecedor Brasileiro
 
 ```
 Base URL: http://616d6bdb6dacbb001794ca17.mockapi.io/devnology/brazilian_provider
-
-GET /brazilian_provider        # Lista todos os produtos
-GET /brazilian_provider/:id    # Busca produto por ID
 ```
+
+**Endpoints:**
+
+- `GET /brazilian_provider` - Lista todos os produtos
+- `GET /brazilian_provider/:id` - Busca produto por ID
 
 **Estrutura de resposta:**
 
 ```json
 {
   "id": "1",
-  "nome": "Produto",
-  "descricao": "Descrição",
+  "nome": "Produto Brasileiro",
+  "descricao": "Descrição detalhada",
   "preco": "100.00",
-  "imagem": "url",
-  "categoria": "Categoria",
-  "material": "Material",
-  "departamento": "Departamento"
+  "imagem": "https://example.com/image.jpg",
+  "categoria": "Eletrônicos",
+  "material": "Plástico",
+  "departamento": "Informática"
 }
 ```
 
@@ -681,50 +649,87 @@ GET /brazilian_provider/:id    # Busca produto por ID
 
 ```
 Base URL: http://616d6bdb6dacbb001794ca17.mockapi.io/devnology/european_provider
-
-GET /european_provider         # Lista todos os produtos
-GET /european_provider/:id     # Busca produto por ID
 ```
+
+**Endpoints:**
+
+- `GET /european_provider` - Lista todos os produtos
+- `GET /european_provider/:id` - Busca produto por ID
 
 **Estrutura de resposta:**
 
 ```json
 {
   "id": "1",
-  "name": "Product",
-  "description": "Description",
+  "name": "European Product",
+  "description": "Detailed description",
   "price": "100.00",
-  "gallery": ["url1", "url2"],
-  "hasDiscount": false,
-  "discountValue": "0"
+  "gallery": ["url1", "url2", "url3"],
+  "hasDiscount": true,
+  "discountValue": "10%"
 }
 ```
 
 ---
 
-## 📚 Documentação Adicional
-
-### Estrutura de Pastas
+## 📚 Estrutura do Projeto
 
 ```
 src/
-├── auth/               # Módulo de autenticação
-│   ├── guards/         # Guards JWT e Local
-│   ├── strategies/     # Estratégias Passport
-│   └── dto/            # DTOs de login/register
-├── users/              # Módulo de usuários
-├── clients/            # Módulo de clientes (whitelabel)
-│   └── middleware/     # Middleware de identificação
-├── products/           # Módulo de produtos
-│   ├── entities/       # Entidade Product
-│   └── dto/            # DTOs de produtos
-├── suppliers/          # Módulo de fornecedores
-├── events/             # Módulo WebSocket
-├── database/           # Configuração TypeORM
-└── interfaces/         # Interfaces compartilhadas
+├── auth/                    # Módulo de autenticação
+│   ├── guards/              # Guards JWT customizados
+│   │   └── jwt-auth.guard.ts
+│   ├── strategies/          # Estratégias Passport
+│   │   └── jwt.strategy.ts  # Apenas JWT (LocalStrategy removido)
+│   ├── dto/                 # DTOs de login/register
+│   ├── auth.controller.ts   # Controller (sem LocalAuthGuard)
+│   ├── auth.service.ts      # Service com validateUser()
+│   └── auth.module.ts       # Module simplificado
+├── users/                   # Módulo de usuários
+│   ├── entities/            # Entidade User
+│   ├── dto/                 # DTOs de usuários
+│   ├── users.controller.ts
+│   ├── users.service.ts
+│   └── users.module.ts
+├── clients/                 # Módulo de clientes (whitelabel)
+│   ├── entities/            # Entidade Client
+│   ├── middleware/          # ClientMiddleware (identificação)
+│   ├── clients.controller.ts
+│   ├── clients.service.ts
+│   └── clients.module.ts
+├── products/                # Módulo de produtos
+│   ├── entities/            # Entidade Product
+│   ├── dto/                 # FilterProductsDto
+│   ├── products.controller.ts
+│   ├── products.service.ts  # Sincronização e normalização
+│   └── products.module.ts
+├── suppliers/               # Módulo de fornecedores
+│   ├── entities/            # Entidade Supplier
+│   ├── suppliers.controller.ts
+│   ├── suppliers.service.ts # Integração com APIs externas
+│   └── suppliers.module.ts
+├── events/                  # Módulo WebSocket
+│   ├── events.gateway.ts    # Socket.io Gateway
+│   └── events.module.ts
+├── database/                # Configuração do banco
+│   ├── database.module.ts   # TypeORM config
+│   └── create-database.ts   # Script de criação automática
+├── initialization/          # Módulo de inicialização
+│   ├── initialization.service.ts  # Seed automático
+│   └── initialization.module.ts
+├── config/                  # Configurações globais
+│   └── config.ts            # Carregamento de variáveis .env
+├── interfaces/              # Interfaces compartilhadas
+│   ├── client.interface.ts
+│   ├── product.interface.ts
+│   └── supplier.interface.ts
+├── app.module.ts            # Módulo raiz
+└── main.ts                  # Bootstrap da aplicação
 ```
 
-### Scripts Disponíveis
+---
+
+## 🔧 Scripts Disponíveis
 
 ```json
 {
@@ -732,18 +737,30 @@ src/
   "start:dev": "nest start --watch",
   "start:prod": "node dist/main",
   "build": "nest build",
-  "seed:suppliers": "ts-node -r tsconfig-paths/register src/scripts/init-suppliers.ts",
-  "seed:clients": "ts-node -r tsconfig-paths/register src/scripts/init-clients.ts",
-  "seed:admin": "ts-node -r tsconfig-paths/register src/scripts/init-admin.ts",
-  "seed:all": "npm run seed:suppliers && npm run seed:clients && npm run seed:admin"
+  "format": "prettier --write \"src/**/*.ts\"",
+  "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix"
 }
 ```
 
 ---
 
-## 🐛 Troubleshooting
+## 🛠️ Troubleshooting
 
-### Erro de conexão com banco de dados
+### ❌ Erro: "Unknown authentication strategy 'local'"
+
+**Solução:** Este erro foi corrigido! A autenticação agora usa validação direta no controller sem depender de LocalStrategy.
+
+```typescript
+// Novo método de login (sem LocalAuthGuard)
+@Post('login')
+async login(@Body() loginDto: LoginDto) {
+  const user = await this.authService.validateUser(email, password);
+  if (!user) throw new UnauthorizedException('Credenciais inválidas');
+  return this.authService.login(user, domain);
+}
+```
+
+### ❌ Erro de conexão com banco de dados
 
 ```bash
 # Verifique se o PostgreSQL está rodando
@@ -753,7 +770,7 @@ sudo systemctl status postgresql
 psql -U postgres -h localhost
 ```
 
-### Erro ao sincronizar produtos
+### ❌ Erro ao sincronizar produtos
 
 ```bash
 # Verifique se os fornecedores estão cadastrados
@@ -763,7 +780,7 @@ curl http://localhost:3000/api/suppliers
 npm run start:dev
 ```
 
-### Token JWT inválido
+### ❌ Token JWT inválido
 
 ```bash
 # Faça login novamente para obter um novo token
@@ -772,16 +789,68 @@ curl -X POST http://localhost:3000/api/auth/login \
   -d '{"email": "seu@email.com", "password": "senha"}'
 ```
 
+### ❌ CORS Error
+
+O sistema já está configurado para aceitar requisições de:
+
+- `http://localhost:8000`
+- `http://localhost:8080`
+- `http://devnology.com:8000`
+- `http://in8.com:8000`
+
+---
+
+## 🚀 Deploy
+
+### Variáveis de Ambiente para Produção
+
+```env
+NODE_ENV=production
+DATABASE_HOST=seu-host-postgres.com
+DATABASE_PORT=5432
+DATABASE_USERNAME=seu_usuario
+DATABASE_PASSWORD=senha_segura
+DATABASE_NAME=e_commerce_whitelabel
+JWT_SECRET=secret_production_super_seguro_64_caracteres
+JWT_EXPIRES_IN=7d
+PORT=3000
+```
+
+### Build para Produção
+
+```bash
+npm run build
+npm run start:prod
+```
+
 ---
 
 ## 📄 Licença
 
-Este projeto foi desenvolvido como parte do processo seletivo .
+Este projeto foi desenvolvido como parte de um processo seletivo.
 
 ---
 
 ## 👨‍💻 Autor
 
-Desenvolvido para o processo seletivo - Caique Junior
+**Caique Junior**
+
+Desenvolvido para demonstrar habilidades em:
+
+- NestJS & TypeScript
+- Arquitetura Clean & Modular
+- Integração com APIs Externas
+- WebSockets & Tempo Real
+- Autenticação JWT
+- Sistema Multi-tenant (Whitelabel)
+- PostgreSQL & TypeORM
 
 ---
+
+## 📞 Contato & Suporte
+
+Para dúvidas ou sugestões sobre este projeto, entre em contato através dos canais apropriados do processo seletivo.
+
+---
+
+**Desenvolvido com ❤️ usando NestJS**

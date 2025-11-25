@@ -22,7 +22,7 @@
     "seed:clients": "ts-node -r tsconfig-paths/register src/scripts/init-clients.ts",
     "seed:admin": "ts-node -r tsconfig-paths/register src/scripts/init-admin.ts",
     "seed:all": "npm run seed:suppliers && npm run seed:clients && npm run seed:admin",
-    "db:init": "DB_FORCE_INIT=true nest start" 
+    "db:init": "DB_FORCE_INIT=true nest start"
   },
   "dependencies": {
     "@nestjs/axios": "^4.0.1",
@@ -59,6 +59,7 @@
     "@types/jest": "^30.0.0",
     "@types/node": "^22.10.7",
     "@types/passport-jwt": "^4.0.1",
+    "@types/passport-local": "^1.0.38",
     "@types/supertest": "^6.0.2",
     "eslint": "^9.18.0",
     "eslint-config-prettier": "^10.0.1",
