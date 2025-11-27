@@ -11,6 +11,7 @@ import { SuppliersModule } from './suppliers/suppliers.module';
 import { EventsModule } from './events/events.module';
 import config from './config/config';
 import { InitializationModule } from './initialization/initialization.module';
+import { OrdersModule } from './orders/orders.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { InitializationModule } from './initialization/initialization.module';
     ClientsModule,
     ProductsModule,
     SuppliersModule,
+    OrdersModule,
     EventsModule,
     InitializationModule,
   ],
