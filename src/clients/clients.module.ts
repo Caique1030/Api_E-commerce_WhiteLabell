@@ -9,14 +9,13 @@ import { ClientMiddleware } from './middleware/client.middleware';
     TypeOrmModule.forFeature([Client])
   ],
   providers: [ClientsService],
-  exports: [ClientsService]  // <-- NECESSÁRIO para outros módulos
+  exports: [ClientsService]
 })
 export class ClientsModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
     consumer
       .apply(ClientMiddleware)
       .exclude(
-        // Rotas públicas
         { path: 'auth/login', method: RequestMethod.POST },
         { path: 'auth/register', method: RequestMethod.POST },
         { path: 'auth/forgot-password', method: RequestMethod.POST },

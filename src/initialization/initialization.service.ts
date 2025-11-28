@@ -8,7 +8,6 @@ export class InitializationService implements OnApplicationBootstrap {
   constructor(private dataSource: DataSource) {}
 
   async onApplicationBootstrap() {
-    // Aguarda o TypeORM terminar de criar o schema
     await new Promise(res => setTimeout(res, 1000));
 
     this.logger.log("🌱 Iniciando verificação de dados...");
@@ -16,12 +15,9 @@ export class InitializationService implements OnApplicationBootstrap {
     await this.seedClients();
     await this.seedSuppliers();
 
-    this.logger.log("✅ Dados iniciais verificados e inseridos quando necessário!");
   }
 
-  // ------------------------------------------
-  // CLIENTES
-  // ------------------------------------------
+
   private async seedClients() {
     const clients = [
       {
@@ -68,13 +64,9 @@ export class InitializationService implements OnApplicationBootstrap {
         ],
       );
 
-      this.logger.log(`➕ Cliente criado: ${client.name}`);
     }
   }
 
-  // ------------------------------------------
-  // FORNECEDORES
-  // ------------------------------------------
   private async seedSuppliers() {
     const suppliers = [
       {
@@ -110,7 +102,6 @@ export class InitializationService implements OnApplicationBootstrap {
         [supplier.name, supplier.type, supplier.api_url],
       );
 
-      this.logger.log(`➕ Fornecedor criado: ${supplier.name}`);
     }
   }
 }

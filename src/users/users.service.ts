@@ -63,7 +63,6 @@ export class UsersService {
   async update(id: string, updateUserDto: UpdateUserDto): Promise<User> {
     const user = await this.findOne(id);
 
-    // Não permite atualizar senha por este método
     if (updateUserDto.password) {
       delete updateUserDto.password;
     }
@@ -85,23 +84,22 @@ export class UsersService {
 
     const isOldPasswordValid = await bcrypt.compare(oldPassword, user.password);
     if (!isOldPasswordValid) {
-      throw new BadRequestException('Senha atual incorreta');
+      throw new BadRequestException('Incorrect current password');
     }
 
     const isSamePassword = await bcrypt.compare(newPassword, user.password);
     if (isSamePassword) {
       throw new BadRequestException(
-        'A nova senha deve ser diferente da senha atual',
+        'The new password must be different from the current password',
       );
     }
 
-    // Hash da nova senha
     const hashedPassword = await bcrypt.hash(newPassword, 10);
     user.password = hashedPassword;
 
     await this.userRepository.save(user);
 
-    return { message: 'Senha alterada com sucesso' };
+    return { message: 'Password changed successfully' };
   }
 
   async remove(id: string): Promise<void> {

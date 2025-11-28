@@ -34,7 +34,7 @@ export class SuppliersService {
     });
 
     if (existingSupplier) {
-      throw new ConflictException('Nome já está em uso');
+      throw new ConflictException('Name is already in use');
     }
 
     const newSupplier = this.supplierRepository.create(createSupplierDto);
@@ -51,7 +51,7 @@ export class SuppliersService {
   async findOne(id: string): Promise<Supplier> {
     const supplier = await this.supplierRepository.findOne({ where: { id } });
     if (!supplier) {
-      throw new NotFoundException(`Fornecedor com ID ${id} não encontrado`);
+      throw new NotFoundException(`Vendor with ID ${id} not found`);
     }
     return supplier;
   }

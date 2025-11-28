@@ -35,7 +35,6 @@ export class ProductsService {
   ): Promise<{ products: Product[]; total: number }> {
     const where: Record<string, unknown> = {};
     const options: FindManyOptions<Product> = {
-      // ✅ Se limit for -1, busca todos
       take: filters?.limit === -1 ? undefined : filters?.limit || 150,
       skip: filters?.offset || 0,
       order: { createdAt: 'DESC' },
@@ -90,13 +89,6 @@ export class ProductsService {
   }
 
 
-
-
-
-  /**
-   * Sincroniza produtos de todos os fornecedores
-   * Normaliza os dados de acordo com o tipo de fornecedor (brazilian/european)
-   */
   async syncProductsFromSuppliers() {
     this.logger.log('🔄 Iniciando sincronização de produtos...');
     const suppliers = await this.suppliersService.findAll();
@@ -114,15 +106,11 @@ export class ProductsService {
 
     for (const supplier of suppliers) {
       try {
-        this.logger.log(
-          `📦 Sincronizando fornecedor: ${supplier.name} (${supplier.type})`,
-        );
+       
 
         const products = await this.fetchAllSupplierProducts(supplier);
 
-        this.logger.log(
-          `📊 ${products.length} produtos encontrados e validados`,
-        );
+        
 
         let syncedCount = 0;
         let errorCount = 0;
@@ -150,9 +138,7 @@ export class ProductsService {
           status: 'success',
         });
 
-        this.logger.log(
-          `✅ ${supplier.name}: ${syncedCount} produtos sincronizados (${errorCount} erros)`,
-        );
+        
       } catch (error) {
         this.logger.error(
           `❌ Erro ao sincronizar ${supplier.name}:`,
@@ -167,9 +153,7 @@ export class ProductsService {
       }
     }
 
-    this.logger.log(
-      `✅ Sincronização concluída: ${totalSynced} produtos totais`,
-    );
+    
 
     return {
       message: 'Products synchronized successfully',
@@ -178,10 +162,7 @@ export class ProductsService {
     };
   }
 
-  /**
-   * Busca todos os produtos de um fornecedor
-   * Lida com diferentes formatos de resposta da API
-   */
+  
   private async fetchAllSupplierProducts(supplier: Supplier): Promise<any[]> {
     try {
       const response = await axios.get(supplier.apiUrl, {
@@ -190,13 +171,10 @@ export class ProductsService {
       });
 
       if (!response.data || !Array.isArray(response.data)) {
-        this.logger.warn(
-          `⚠️ Supplier ${supplier.name} returned invalid data format`,
-        );
+        
         return [];
       }
 
-      // Normalizar produtos baseado no tipo de fornecedor
       return this.normalizeProducts(response.data, supplier.type);
     } catch (error) {
       this.logger.error(
@@ -207,46 +185,30 @@ export class ProductsService {
     }
   }
 
-  /**
-   * Normaliza a estrutura dos produtos de acordo com o fornecedor
-   * Lida com estruturas aninhadas e malformadas
-   */
+
   private normalizeProducts(products: any[], supplierType: string): any[] {
     if (!Array.isArray(products)) {
-      this.logger.warn('⚠️ Products data is not an array');
       return [];
     }
 
-    // Flatten nested objects and extract valid products
     const flattenedProducts = this.flattenProductArray(products);
 
-    this.logger.debug(
-      `🔍 Produtos após flatten: ${flattenedProducts.length} de ${products.length} originais`,
-    );
+    
 
     return flattenedProducts
       .filter((product) => this.isValidProduct(product, supplierType))
       .map((product) => this.normalizeProduct(product, supplierType));
   }
 
-  /**
-   * Achata array de produtos que podem conter objetos aninhados malformados
-   * Lida com estruturas como:
-   * - { "0": {...}, "1": {...}, "nome": "...", "id": "52" }
-   * - { "nome": "...", "body": {...} }
-   * - Arrays normais
-   */
   private flattenProductArray(products: any[]): any[] {
     const result: any[] = [];
     const seenIds = new Set<string>();
 
     const processItem = (item: any, depth: number = 0) => {
-      // Prevenir recursão infinita
       if (depth > 5) return;
 
       if (!item || typeof item !== 'object') return;
 
-      // Se for um array, processar cada item
       if (Array.isArray(item)) {
         for (const subItem of item) {
           processItem(subItem, depth + 1);
@@ -254,24 +216,19 @@ export class ProductsService {
         return;
       }
 
-      // Verificar se tem um ID válido no nível atual
       if (item.id && (item.nome || item.name)) {
         const id = String(item.id);
 
-        // Evitar duplicatas
         if (!seenIds.has(id)) {
           seenIds.add(id);
 
-          // Remover propriedades que são objetos aninhados malformados
           const cleanItem = this.cleanProductObject(item);
           result.push(cleanItem);
         }
       }
 
-      // Processar chaves que podem conter produtos aninhados
       const keys = Object.keys(item);
       for (const key of keys) {
-        // Ignorar chaves que são propriedades do produto válido
         if (
           key === 'id' ||
           key === 'nome' ||
@@ -294,7 +251,6 @@ export class ProductsService {
           continue;
         }
 
-        // Processar chaves numéricas ou objetos aninhados
         if (
           (!isNaN(Number(key)) || key === 'body' || key === 'data') &&
           item[key] &&
@@ -312,19 +268,15 @@ export class ProductsService {
     return result;
   }
 
-  /**
-   * Remove propriedades inválidas ou malformadas do objeto produto
-   */
+
   private cleanProductObject(product: any): any {
     const cleaned: any = {};
 
     for (const [key, value] of Object.entries(product)) {
-      // Pular chaves numéricas (objetos aninhados)
       if (!isNaN(Number(key))) {
         continue;
       }
 
-      // Pular propriedades problemáticas
       if (
         key === 'body' ||
         key === 'email' ||
@@ -335,7 +287,6 @@ export class ProductsService {
         continue;
       }
 
-      // Manter apenas valores primitivos ou arrays/objetos válidos
       if (
         value === null ||
         value === undefined ||
@@ -352,25 +303,20 @@ export class ProductsService {
     return cleaned;
   }
 
-  /**
-   * Valida se o produto tem os campos mínimos necessários
-   */
+
   private isValidProduct(product: any, supplierType: string): boolean {
     if (!product || typeof product !== 'object') {
       return false;
     }
 
-    // Verificar se não é um objeto aninhado malformado
     if (typeof product.nome === 'object' || typeof product.name === 'object') {
       return false;
     }
 
-    // Verificar se tem propriedades inválidas
     if (product.body || product.email || product.password) {
       return false;
     }
 
-    // Verificar campos obrigatórios por tipo
     if (supplierType === 'brazilian') {
       return !!(product.id && product.nome && product.preco);
     } else {
@@ -378,9 +324,7 @@ export class ProductsService {
     }
   }
 
-  /**
-   * Normaliza um produto individual
-   */
+
   private normalizeProduct(product: any, supplierType: string): any {
     if (supplierType === 'brazilian') {
       return {
@@ -397,7 +341,6 @@ export class ProductsService {
         discountValue: '0',
       };
     } else {
-      // European provider
       return {
         id: String(product.id),
         name: product.name || 'Produto sem nome',
@@ -417,18 +360,14 @@ export class ProductsService {
     }
   }
 
-  /**
-   * Converte preço para número, tratando diferentes formatos
-   */
+
   private parsePrice(price: any): number {
     if (typeof price === 'number') {
       return price;
     }
 
     if (typeof price === 'string') {
-      // Remove caracteres não numéricos exceto ponto e vírgula
       const cleaned = price.replace(/[^\d.,]/g, '');
-      // Substitui vírgula por ponto
       const normalized = cleaned.replace(',', '.');
       const parsed = parseFloat(normalized);
       return isNaN(parsed) ? 0 : parsed;
@@ -437,9 +376,6 @@ export class ProductsService {
     return 0;
   }
 
-  /**
-   * Cria ou atualiza um produto externo no banco
-   */
   private async createOrUpdateExternalProduct(data: any, supplierId: string) {
     const existing = await this.productRepository.findOne({
       where: { externalId: data.id, supplierId },
@@ -461,14 +397,12 @@ export class ProductsService {
     };
 
     if (existing) {
-      // Atualizar produto existente
       return await this.productRepository.save({
         ...existing,
         ...productData,
         updatedAt: new Date(),
       });
     } else {
-      // Criar novo produto
       return await this.productRepository.save(productData);
     }
   }

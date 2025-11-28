@@ -7,14 +7,12 @@ import { PassportModule } from '@nestjs/passport';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtStrategy } from './strategies/jwt.strategy';
-// ❌ REMOVIDO: import { LocalStrategy } from './strategies/local.strategy';
 
 @Module({
   imports: [
     forwardRef(() => UsersModule),
     forwardRef(() => ClientsModule),
 
-    // Passport apenas para JWT (não precisamos mais do local)
     PassportModule.register({ session: false }),
 
     JwtModule.registerAsync({
@@ -30,7 +28,6 @@ import { JwtStrategy } from './strategies/jwt.strategy';
     }),
   ],
   controllers: [AuthController],
-  // ✅ APENAS JwtStrategy - LocalStrategy foi removido
   providers: [AuthService, JwtStrategy],
   exports: [AuthService, JwtModule],
 })

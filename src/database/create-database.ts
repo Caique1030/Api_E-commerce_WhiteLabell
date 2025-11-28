@@ -12,12 +12,11 @@ export async function ensureDatabaseExists() {
     port,
     user,
     password,
-    database: 'postgres', // conecta sem o banco alvo
+    database: 'postgres',
   });
 
   await client.connect();
 
-  // Verifica se o banco existe
   const res = await client.query(
     `SELECT 1 FROM pg_database WHERE datname='${database}' `
   );

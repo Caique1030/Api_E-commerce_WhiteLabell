@@ -29,7 +29,6 @@ export class AuthService {
   }
 
   async login(user: any, domain: string) {
-    console.log('🔎 Dominio recebido no login:', domain);
 
     const client = await this.clientsService.findByDomain(domain);
 
@@ -62,14 +61,12 @@ export class AuthService {
   }
 
   async register(registerDto: RegisterDto, domain: string) {
-    console.log('🔎 Dominio recebido no register:', domain);
 
     const { email, password, name, role } = registerDto;
 
     let client = await this.clientsService.findByDomain(domain);
 
     if (!client) {
-      console.log('⚠️ Cliente não encontrado — criando novo cliente para domínio:', domain);
 
       client = await this.clientsService.createIfNotExists({
         name: domain + ' Client',
@@ -81,7 +78,7 @@ export class AuthService {
 
     const existingUser = await this.usersService.findByEmail(email);
     if (existingUser) {
-      throw new BadRequestException('E-mail já cadastrado');
+      throw new BadRequestException('Email already registered');
     }
 
     const user = await this.usersService.create({

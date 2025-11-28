@@ -29,7 +29,6 @@ export class Order {
   @UpdateDateColumn()
   updatedAt: Date;
 
-  // Relação com Client (whitelabel)
   @ManyToOne(() => Client)
   @JoinColumn({ name: 'clientId' })
   client: Client;
@@ -37,7 +36,6 @@ export class Order {
   @Column()
   clientId: string;
 
-  // Relação com User (quem fez o pedido)
   @ManyToOne(() => User)
   @JoinColumn({ name: 'userId' })
   user: User;
@@ -45,7 +43,6 @@ export class Order {
   @Column()
   userId: string;
 
-  // Itens do pedido
   @OneToMany(() => OrderItem, (orderItem) => orderItem.order, { cascade: true })
   items: OrderItem[];
 }

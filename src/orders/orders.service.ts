@@ -24,12 +24,11 @@ export class OrdersService {
       total: createOrderDto.total,
       clientId: client.id,
       userId: userId,
-      status: 'completed', // Como é apenas para visualização
+      status: 'completed',
     });
 
     const savedOrder = await this.orderRepository.save(order);
 
-    // Criar os itens do pedido
     const orderItems = createOrderDto.items.map((item: CreateOrderItemDto) => {
       return this.orderItemRepository.create({
         ...item,

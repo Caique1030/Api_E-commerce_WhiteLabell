@@ -17,7 +17,7 @@ export class OrderItem {
   quantity: number;
 
   @Column({ type: 'decimal', precision: 10, scale: 2 })
-  price: number; // Preço no momento da compra
+  price: number; 
 
   @ManyToOne(() => Order, (order) => order.items, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'orderId' })

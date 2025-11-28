@@ -21,7 +21,6 @@ if (!host) {
 
 host = Array.isArray(host) ? host[0] : host;
 
-// remove a porta, exemplo: localhost:3000 -> localhost
 const domain = host.split(':')[0];
 
 const client = await this.clientRepository.findOne({
