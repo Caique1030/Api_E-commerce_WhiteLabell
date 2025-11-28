@@ -6,6 +6,7 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178C6?logo=typescript)](https://www.typescriptlang.org/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-14+-336791?logo=postgresql)](https://www.postgresql.org/)
 [![Socket.io](https://img.shields.io/badge/Socket.io-4.x-010101?logo=socket.io)](https://socket.io/)
+[![Jest](https://img.shields.io/badge/Jest-137_tests-C21325?logo=jest)](https://jestjs.io/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 ---
@@ -24,6 +25,7 @@ Esta API permite que diferentes clientes (lojas) utilizem a mesma plataforma de 
 - ✅ **CRUD Completo** - Produtos, Clientes, Fornecedores e Usuários
 - ✅ **Inicialização Automática** - Criação automática de banco e dados iniciais
 - ✅ **CORS Configurado** - Suporte para múltiplos domínios e ambientes
+- ✅ **Testes Automatizados** - 137 testes unitários com Jest
 
 ---
 
@@ -130,6 +132,11 @@ suppliers (1) ──→ (N) products
 ### HTTP & APIs Externas
 
 - **[Axios](https://axios-http.com/)** - Cliente HTTP para consumir APIs dos fornecedores
+
+### Testes
+
+- **[Jest](https://jestjs.io/)** - Framework de testes JavaScript
+- **[@nestjs/testing](https://www.npmjs.com/package/@nestjs/testing)** - Utilitários de teste do NestJS
 
 ---
 
@@ -573,6 +580,142 @@ curl http://localhost:3000/api/products
 
 ---
 
+## 🧪 Testes
+
+O projeto possui uma **suíte completa de testes** cobrindo todos os módulos principais.
+
+### Executar Todos os Testes
+
+```bash
+npm test
+```
+
+### Executar Testes com Coverage
+
+```bash
+npm run test:cov
+```
+
+### Executar Testes em Modo Watch
+
+```bash
+npm run test:watch
+```
+
+### 📊 Cobertura de Testes
+
+O projeto possui **137 testes** cobrindo:
+
+| Módulo    | Testes | Status     |
+| --------- | ------ | ---------- |
+| Auth      | 25     | ✅ Passing |
+| Users     | 24     | ✅ Passing |
+| Clients   | 18     | ✅ Passing |
+| Products  | 35     | ✅ Passing |
+| Suppliers | 20     | ✅ Passing |
+| Orders    | 15     | ✅ Passing |
+
+**Total: 137 testes passando** 🎉
+
+### 🔍 Estrutura dos Testes
+
+```
+test/
+├── auth/
+│   ├── auth.controller.spec.ts    # Testes do controller de autenticação
+│   └── auth.service.spec.ts       # Testes do service de autenticação
+├── users/
+│   ├── users.controller.spec.ts   # Testes do controller de usuários
+│   └── users.service.spec.ts      # Testes do service de usuários
+├── clients/
+│   ├── clients.controller.spec.ts # Testes do controller de clientes
+│   └── clients.service.spec.ts    # Testes do service de clientes
+├── products/
+│   ├── products.controller.spec.ts # Testes do controller de produtos
+│   └── products.service.spec.ts    # Testes do service de produtos (sincronização)
+├── suppliers/
+│   ├── suppliers.controller.spec.ts # Testes do controller de fornecedores
+│   └── suppliers.service.spec.ts    # Testes do service de fornecedores
+└── orders/
+    ├── orders.controller.spec.ts   # Testes do controller de pedidos
+    └── orders.service.spec.ts      # Testes do service de pedidos
+```
+
+### 🎯 Principais Casos de Teste
+
+#### Autenticação
+
+- ✅ Login com credenciais válidas
+- ✅ Login com credenciais inválidas
+- ✅ Registro de novo usuário
+- ✅ Validação de domínio do cliente
+- ✅ Geração de JWT token
+
+#### Produtos
+
+- ✅ Sincronização de produtos de fornecedores
+- ✅ Normalização de produtos brasileiros
+- ✅ Normalização de produtos europeus
+- ✅ Filtros avançados (nome, categoria, preço)
+- ✅ Tratamento de erros em APIs externas
+- ✅ Validação de produtos inválidos
+- ✅ Atualização de produtos existentes
+
+#### Fornecedores
+
+- ✅ Listagem de fornecedores
+- ✅ Busca de produtos por fornecedor
+- ✅ Criação de novos fornecedores
+- ✅ Atualização de fornecedores
+- ✅ Remoção de fornecedores
+- ✅ Tratamento de erros de API
+
+#### Usuários & Clientes
+
+- ✅ CRUD completo de usuários
+- ✅ CRUD completo de clientes
+- ✅ Alteração de senha
+- ✅ Validação de permissões
+- ✅ Multi-tenancy (isolamento por cliente)
+
+### 🔧 Configuração de Testes
+
+Os testes utilizam:
+
+- **Jest** - Framework de testes
+- **@nestjs/testing** - Utilitários de teste do NestJS
+- **Mocks** - Para isolar dependências externas
+- **Spies** - Para verificar chamadas de métodos
+
+### 📝 Exemplo de Teste
+
+```typescript
+describe('ProductsService', () => {
+  it('should sync products from all suppliers successfully', async () => {
+    const brazilianProducts = [
+      {
+        id: '1',
+        nome: 'Produto Brasileiro',
+        preco: '100.00',
+        descricao: 'Descrição',
+        categoria: 'Categoria',
+      },
+    ];
+
+    suppliersService.findAll.mockResolvedValue([mockSupplier]);
+    mockedAxios.get.mockResolvedValue({ data: brazilianProducts });
+    repository.save.mockResolvedValue(mockProduct);
+
+    const result = await service.syncProductsFromSuppliers();
+
+    expect(result.totalSynced).toBeGreaterThan(0);
+    expect(result.details[0].status).toBe('success');
+  });
+});
+```
+
+---
+
 ## 🧪 Testando a API
 
 ### Com cURL
@@ -731,15 +874,27 @@ src/
 
 ## 🔧 Scripts Disponíveis
 
-```json
-{
-  "start": "nest start",
-  "start:dev": "nest start --watch",
-  "start:prod": "node dist/main",
-  "build": "nest build",
-  "format": "prettier --write \"src/**/*.ts\"",
-  "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix"
-}
+```bash
+# Desenvolvimento
+npm run start          # Inicia aplicação
+npm run start:dev      # Inicia com hot-reload
+npm run start:debug    # Inicia em modo debug
+
+# Produção
+npm run build          # Compila o projeto
+npm run start:prod     # Inicia aplicação compilada
+
+# Testes
+npm test               # Executa todos os testes
+npm run test:watch     # Executa testes em modo watch
+npm run test:cov       # Gera relatório de cobertura
+npm run test:debug     # Executa testes em modo debug
+npm run test:e2e       # Executa testes end-to-end
+
+# Qualidade de código
+npm run format         # Formata código com Prettier
+npm run lint           # Verifica código com ESLint
+npm run lint:fix       # Corrige problemas do ESLint
 ```
 
 ---
@@ -798,6 +953,16 @@ O sistema já está configurado para aceitar requisições de:
 - `http://devnology.com:8000`
 - `http://in8.com:8000`
 
+### ❌ Testes falhando
+
+```bash
+# Limpe o cache do Jest
+npm test -- --clearCache
+
+# Execute os testes novamente
+npm test
+```
+
 ---
 
 ## 🚀 Deploy
@@ -823,6 +988,16 @@ npm run build
 npm run start:prod
 ```
 
+### Checklist de Deploy
+
+- [ ] Configurar variáveis de ambiente de produção
+- [ ] Executar migrations do banco de dados
+- [ ] Configurar CORS para domínios de produção
+- [ ] Configurar SSL/TLS (HTTPS)
+- [ ] Configurar logs e monitoramento
+- [ ] Executar testes antes do deploy
+- [ ] Configurar backups automáticos do banco
+
 ---
 
 ## 📄 Licença
@@ -844,12 +1019,20 @@ Desenvolvido para demonstrar habilidades em:
 - Autenticação JWT
 - Sistema Multi-tenant (Whitelabel)
 - PostgreSQL & TypeORM
+- **Testes Automatizados (137 testes com Jest)**
+- Documentação Técnica Completa
 
 ---
 
 ## 📞 Contato & Suporte
 
 Para dúvidas ou sugestões sobre este projeto, entre em contato através dos canais apropriados do processo seletivo.
+
+---
+
+## 🙏 Agradecimentos
+
+Obrigado pela oportunidade de demonstrar minhas habilidades através deste projeto!
 
 ---
 
