@@ -10,7 +10,6 @@ import { Repository } from 'typeorm';
 import { User } from './entities/user.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { EventsGateway } from '../events/events.gateway';
 import { REQUEST } from '@nestjs/core';
 import type { Request } from 'express';
 import * as bcrypt from 'bcrypt';
@@ -20,7 +19,6 @@ export class UsersService {
   constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
-    private readonly eventsGateway: EventsGateway,
     @Inject(REQUEST) private readonly request: Request,
   ) {}
 
@@ -74,8 +72,6 @@ export class UsersService {
     const updatedUser = await this.userRepository.save(user);
     const client = this.request['client'];
 
-    // Notificar via socket sobre atualização do usuário
-    this.eventsGateway.notifyUserUpdated(updatedUser, client?.id);
 
     return updatedUser;
   }
@@ -87,13 +83,11 @@ export class UsersService {
   ): Promise<{ message: string }> {
     const user = await this.findOne(userId);
 
-    // Verificar se a senha antiga está correta
     const isOldPasswordValid = await bcrypt.compare(oldPassword, user.password);
     if (!isOldPasswordValid) {
       throw new BadRequestException('Senha atual incorreta');
     }
 
-    // Verificar se a nova senha é diferente da antiga
     const isSamePassword = await bcrypt.compare(newPassword, user.password);
     if (isSamePassword) {
       throw new BadRequestException(
@@ -115,7 +109,5 @@ export class UsersService {
     await this.userRepository.remove(user);
     const client = this.request['client'];
 
-    // Notificar via socket sobre remoção do usuário
-    this.eventsGateway.notifyUserRemoved(id, client?.id);
   }
 }

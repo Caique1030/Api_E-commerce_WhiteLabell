@@ -2,7 +2,6 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { IoAdapter } from '@nestjs/platform-socket.io';
 import { ensureDatabaseExists } from './database/create-database';
 
 async function bootstrap() {
@@ -13,7 +12,6 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const configService = app.get(ConfigService);
 
-  app.useWebSocketAdapter(new IoAdapter(app));
 
   // Configuração de CORS
   app.enableCors({
@@ -45,7 +43,6 @@ async function bootstrap() {
   const port = configService.get('config.app.port') || 3000;
   await app.listen(port);
   console.log(`🚀 Application is running on: http://localhost:${port}`);
-  console.log(`📡 WebSocket Server available at: ws://localhost:${port}/events`);
 }
 
 bootstrap();

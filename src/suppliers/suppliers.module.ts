@@ -4,13 +4,11 @@ import { SuppliersService } from './suppliers.service';
 import { SuppliersController } from './suppliers.controller';
 import { Supplier } from './entities/supplier.entity';
 import { HttpModule } from '@nestjs/axios';
-import { EventsModule } from '../events/events.module'; 
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Supplier]),
     HttpModule,
-    EventsModule,
   ],
   controllers: [SuppliersController],
   providers: [SuppliersService],

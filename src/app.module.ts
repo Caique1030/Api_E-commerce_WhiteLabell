@@ -8,7 +8,6 @@ import { AuthModule } from './auth/auth.module';
 import { ClientsModule } from './clients/clients.module';
 import { ProductsModule } from './products/products.module';
 import { SuppliersModule } from './suppliers/suppliers.module';
-import { EventsModule } from './events/events.module';
 import config from './config/config';
 import { InitializationModule } from './initialization/initialization.module';
 import { OrdersModule } from './orders/orders.module';
@@ -26,7 +25,6 @@ import { OrdersModule } from './orders/orders.module';
     ProductsModule,
     SuppliersModule,
     OrdersModule,
-    EventsModule,
     InitializationModule,
   ],
   controllers: [AppController],

@@ -9,7 +9,6 @@ import { Repository } from 'typeorm';
 import { Supplier } from './entities/supplier.entity';
 import { HttpService } from '@nestjs/axios';
 import { lastValueFrom } from 'rxjs';
-import { EventsGateway } from 'src/events/events.gateway';
 import { REQUEST } from '@nestjs/core';
 import type { Request } from 'express';
 import { CreateSupplierDto } from './dtos/create-supplier.dto';
@@ -22,7 +21,6 @@ export class SuppliersService {
     private readonly supplierRepository: Repository<Supplier>,
 
     private readonly httpService: HttpService,
-    private readonly eventsGateway: EventsGateway,
 
     @Inject(REQUEST) private readonly request: Request, 
   ) {}
