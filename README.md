@@ -21,8 +21,7 @@ Esta API permite que diferentes clientes (lojas) utilizem a mesma plataforma de 
 - ✅ **Sistema Whitelabel** - Identificação automática de cliente por domínio
 - ✅ **Integração com Fornecedores** - Sincronização automática de produtos de múltiplas APIs
 - ✅ **Listagem e Filtros Avançados** - Busca por nome, categoria, preço e fornecedor
-- ✅ **WebSockets** - Notificações em tempo real via Socket.io
-- ✅ **CRUD Completo** - Produtos, Clientes, Fornecedores e Usuários
+- ✅ **CRUD Pacial** - Produtos, Clientes, Fornecedores Ordens e Usuários
 - ✅ **Inicialização Automática** - Criação automática de banco e dados iniciais
 - ✅ **CORS Configurado** - Suporte para múltiplos domínios e ambientes
 - ✅ **Testes Automatizados** - 137 testes unitários com Jest
@@ -39,7 +38,6 @@ O projeto segue uma **arquitetura modular** baseada em NestJS, utilizando:
 - **DTOs e Validation** - Validação de dados com class-validator e class-transformer
 - **Middleware** - Identificação automática de cliente por domínio (x-client-domain ou host)
 - **Guards Customizados** - Proteção de rotas sem dependência de LocalStrategy
-- **WebSockets** - Comunicação bidirecional em tempo real
 - **Request Scope** - Injeção de contexto da requisição para multi-tenancy
 
 ### 📦 Módulos Principais
@@ -51,6 +49,7 @@ O projeto segue uma **arquitetura modular** baseada em NestJS, utilizando:
 | **ClientsModule**        | Gerenciamento de clientes whitelabel (domínio, cores, logo)         |
 | **ProductsModule**       | Sincronização e gerenciamento de produtos de múltiplos fornecedores |
 | **SuppliersModule**      | Gerenciamento de fornecedores externos (brazilian/european)         |
+| **OrdersModule**         | Gerenciamento de pedidos por cliente                                |
 | **EventsModule**         | WebSockets para notificações em tempo real                          |
 | **DatabaseModule**       | Configuração TypeORM e criação automática do banco                  |
 | **InitializationModule** | População automática de dados iniciais (clientes e fornecedores)    |
@@ -67,6 +66,7 @@ O projeto segue uma **arquitetura modular** baseada em NestJS, utilizando:
 | **users**     | Usuários do sistema vinculados a um cliente específico              |
 | **suppliers** | Fornecedores externos (brazilian, european) com URLs das APIs       |
 | **products**  | Produtos sincronizados de todos os fornecedores                     |
+| **orderss**   | Tabela de pedidos finalizados                                       |
 
 #### 🔗 Relacionamentos Principais
 
@@ -112,6 +112,7 @@ suppliers (1) ──→ (N) products
 ### Banco de Dados
 
 - **[PostgreSQL](https://www.postgresql.org/)** v14+ - Banco de dados relacional com suporte a JSONB
+- **DER** docs/der.png
 
 ### Autenticação & Segurança
 
@@ -124,10 +125,6 @@ suppliers (1) ──→ (N) products
 - **[class-validator](https://github.com/typestack/class-validator)** - Validação baseada em decorators
 - **[class-transformer](https://github.com/typestack/class-transformer)** - Transformação e serialização
 
-### Comunicação em Tempo Real
-
-- **[Socket.io](https://socket.io/)** v4.x - WebSockets para eventos em tempo real
-- **[@nestjs/websockets](https://www.npmjs.com/package/@nestjs/websockets)** - Integração WebSocket
 
 ### HTTP & APIs Externas
 
@@ -204,15 +201,7 @@ npm run start:dev
 ```bash
 ✔ Database 'e_commerce_whitelabel' já existe.
 [NestFactory] Starting Nest application...
-[InitializationService] 🌱 Iniciando verificação de dados...
-[InitializationService] ✔ Cliente já existe: Devnology
-[InitializationService] ✔ Cliente já existe: IN8
-[InitializationService] ✔ Cliente já existe: Localhost Client
-[InitializationService] ✔ Fornecedor já existe: Fornecedor Brasileiro
-[InitializationService] ✔ Fornecedor já existe: Fornecedor Europeu
-[InitializationService] ✅ Dados iniciais verificados e inseridos quando necessário!
 🚀 Application is running on: http://localhost:3000
-📡 WebSocket Server available at: ws://localhost:3000/events
 ```
 
 ---
@@ -472,64 +461,7 @@ Altera senha do usuário autenticado
 }
 ```
 
----
 
-## 🔌 WebSockets (Eventos em Tempo Real)
-
-### Conectar ao WebSocket
-
-```javascript
-import io from 'socket.io-client';
-
-const socket = io('http://localhost:3000/events', {
-  transports: ['websocket'],
-  auth: {
-    token: 'seu_jwt_token_aqui', // Opcional
-  },
-});
-
-socket.on('connect', () => {
-  console.log('Conectado ao servidor WebSocket');
-  console.log('Socket ID:', socket.id);
-});
-```
-
-### Eventos Disponíveis
-
-| Evento             | Descrição                         |
-| ------------------ | --------------------------------- |
-| `supplier:created` | Novo fornecedor criado            |
-| `supplier:updated` | Fornecedor atualizado             |
-| `supplier:removed` | Fornecedor removido               |
-| `product:created`  | Novo produto disponível           |
-| `product:updated`  | Produto atualizado                |
-| `product:removed`  | Produto removido                  |
-| `client:created`   | Nova loja criada                  |
-| `client:updated`   | Configurações da loja atualizadas |
-| `client:removed`   | Loja removida                     |
-
-### Exemplo de Uso
-
-```javascript
-// Escutar novos produtos
-socket.on('product:created', (data) => {
-  console.log('Novo produto:', data);
-  // { id, name, price, supplierId, clientId }
-});
-
-// Escutar atualizações de produtos
-socket.on('product:updated', (data) => {
-  console.log('Produto atualizado:', data);
-});
-
-// Escutar sincronização de produtos
-socket.on('products:synced', (stats) => {
-  console.log('Produtos sincronizados:', stats);
-  // { productsCreated, productsUpdated, totalSuppliers }
-});
-```
-
----
 
 ## 🎨 Sistema Whitelabel
 
@@ -851,9 +783,11 @@ src/
 │   ├── suppliers.controller.ts
 │   ├── suppliers.service.ts # Integração com APIs externas
 │   └── suppliers.module.ts
-├── events/                  # Módulo WebSocket
-│   ├── events.gateway.ts    # Socket.io Gateway
-│   └── events.module.ts
+├── orders/                  # Módulo De Ordens
+│   ├── entities/            # Entidade Ordens
+│   ├── orders.controller.ts
+│   ├── orders.service.ts # Integração com APIs externas
+│   └── orders.module.ts
 ├── database/                # Configuração do banco
 │   ├── database.module.ts   # TypeORM config
 │   └── create-database.ts   # Script de criação automática
@@ -1036,4 +970,3 @@ Obrigado pela oportunidade de demonstrar minhas habilidades através deste proje
 
 ---
 
-**Desenvolvido com ❤️ usando NestJS**
